@@ -9,8 +9,20 @@ extra-source-files: CHANGELOG.md
 
 executable g
   main-is:          Main.hs
+  mixins:
+    base hiding (Prelude),
+    relude (Relude as Prelude)
+
   build-depends:
     , base
+    , relude
     , text
+
+  default-extensions:
+    LambdaCase
+    OverloadedStrings
+    ScopedTypeVariables
+    TypeApplications
+    DeriveGeneric
 
   default-language: Haskell2010
