@@ -10,7 +10,7 @@ import Reflex.Host.Headless (runHeadlessApp)
 import Reflex.Network (networkView)
 import System.Directory (makeAbsolute)
 import qualified System.FSNotify as FSN
-import System.FilePath (isRelative, makeRelative)
+import System.FilePath (isRelative, makeRelative, takeExtension)
 import System.FilePattern (FilePattern)
 import qualified System.FilePattern as FP
 import qualified System.FilePattern.Directory as SFD
@@ -20,12 +20,28 @@ main = do
   runHeadlessApp $ do
     liftIO $ putTextLn "Will exit if anything changes in PWD ..."
     fsInc <- getDirectoryFiles [".*/**"] "."
-    let fsIncNoContent = unsafeMapIncremental void void fsInc
+    let fsIncFinal =
+          fsInc
+            & pipeDiscardContent
+            & pipeFilterExt ".md"
+    performEvent_ $
+      ffor (updatedIncremental fsIncFinal) $ \m ->
+        liftIO $ print m
     void $
       networkView $
-        ffor (incrementalToDynamic fsIncNoContent) $ \(Map.keys -> fs) ->
+        ffor (incrementalToDynamic fsIncFinal) $ \(Map.keys -> fs) ->
           liftIO $ print fs
     pure never
+
+pipeDiscardContent :: (Reflex t, Ord k) => Incremental t (PatchMap k v) -> Incremental t (PatchMap k ())
+pipeDiscardContent =
+  unsafeMapIncremental void void
+
+pipeFilterExt :: Reflex t => String -> Incremental t (PatchMap FilePath v) -> Incremental t (PatchMap FilePath v)
+pipeFilterExt ext =
+  unsafeMapIncremental
+    (Map.mapMaybeWithKey $ \fs x -> guard (takeExtension fs == ext) >> pure x)
+    (PatchMap . Map.mapMaybeWithKey (\fs x -> guard (takeExtension fs == ".md") >> pure x) . unPatchMap)
 
 -- | Return a reflex Incremental reflecting the selected files in a directory tree.
 --
