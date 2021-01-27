@@ -2,22 +2,74 @@ module Main where
 
 import Control.Monad.Fix (MonadFix)
 import Data.List (nubBy)
+import qualified Data.Map as Map
 import Data.Time.Clock (NominalDiffTime)
 import Reflex
 import Reflex.FSNotify (FSEvent, watchTree)
 import Reflex.Host.Headless (runHeadlessApp)
+import Reflex.Network (networkView)
 import System.Directory (makeAbsolute)
 import qualified System.FSNotify as FSN
 import System.FilePath (isRelative, makeRelative)
 import System.FilePattern (FilePattern)
 import qualified System.FilePattern as FP
+import qualified System.FilePattern.Directory as SFD
 
 main :: IO ()
 main = do
   runHeadlessApp $ do
     liftIO $ putTextLn "Will exit if anything changes in PWD ..."
-    fsEvents <- watchDirWithDebounce 0.1 [".*/**"] "."
-    pure $ () <$ fsEvents
+    fsInc <- getDirectoryFiles [".*/**"] "."
+    let fsIncNoContent = unsafeMapIncremental void void fsInc
+    void $
+      networkView $
+        ffor (incrementalToDynamic fsIncNoContent) $ \(Map.keys -> fs) ->
+          liftIO $ print fs
+    pure never
+
+-- | Return a reflex Incremental reflecting the selected files in a directory tree.
+--
+-- The incremental updates as any of the files in the directory change, or get
+-- added or removed.
+getDirectoryFiles ::
+  ( Reflex t,
+    MonadHold t m,
+    MonadFix m,
+    MonadIO m,
+    MonadIO (Performable m),
+    PostBuild t m,
+    TriggerEvent t m,
+    PerformEvent t m
+  ) =>
+  [FilePattern] ->
+  FilePath ->
+  m (Incremental t (PatchMap FilePath ByteString))
+getDirectoryFiles ignores p = do
+  fsEvents <- watchDirWithDebounce 0.1 ignores p
+  fs0 <- liftIO $ do
+    fs <- SFD.getDirectoryFilesIgnore p ["**"] ignores
+    fmap Map.fromList $
+      forM fs $ \f -> do
+        s <- readFileBS f
+        pure (f, s)
+  fsPatches <- performEvent $
+    ffor fsEvents $ \evts ->
+      liftIO $ readFilesAsPatchMap evts
+  holdIncremental fs0 fsPatches
+  where
+    readFilesAsPatchMap :: [FSN.Event] -> IO (PatchMap FilePath ByteString)
+    readFilesAsPatchMap =
+      fmap (PatchMap . Map.fromList . catMaybes) . traverse go
+      where
+        go = \case
+          FSN.Added fp _time False ->
+            Just . (fp,) . Just <$> readFileBS fp
+          FSN.Modified fp _time False ->
+            Just . (fp,) . Just <$> readFileBS fp
+          FSN.Removed fp _time False ->
+            pure $ Just (fp, Nothing)
+          _ ->
+            pure Nothing
 
 -- | Like `watchDir` but batches file events, and limits to given dir children.
 --

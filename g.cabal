@@ -34,7 +34,9 @@ executable g
     LambdaCase
     OverloadedStrings
     ScopedTypeVariables
+    TupleSections
     TypeApplications
+    ViewPatterns
 
   ghc-options:
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns
