@@ -16,7 +16,7 @@ in
 
     # Some common tools can be added with the `tools` argument
     tools = {
-      # cabal = "3.2.0.0";
+      cabal = "3.2.0.0";
       # hlint = "2.2.11";
     };
     # See overlays/tools.nix for more details
