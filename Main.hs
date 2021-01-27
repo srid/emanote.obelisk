@@ -7,10 +7,9 @@ import Data.Time.Clock (NominalDiffTime)
 import Reflex
 import Reflex.FSNotify (FSEvent, watchTree)
 import Reflex.Host.Headless (runHeadlessApp)
-import Reflex.Network (networkView)
-import System.Directory (makeAbsolute)
+import System.Directory (makeAbsolute, removeFile)
 import qualified System.FSNotify as FSN
-import System.FilePath (isRelative, makeRelative, takeExtension)
+import System.FilePath (isRelative, makeRelative, replaceExtension, takeExtension, takeFileName)
 import System.FilePattern (FilePattern)
 import qualified System.FilePattern as FP
 import qualified System.FilePattern.Directory as SFD
@@ -22,16 +21,30 @@ main = do
     fsInc <- getDirectoryFiles [".*/**"] "."
     let fsIncFinal =
           fsInc
-            & pipeDiscardContent
             & pipeFilterExt ".md"
+    let xDiff = updatedIncremental fsIncFinal
+    x0 <- sample $ currentIncremental fsIncFinal
+    liftIO $ print x0
+    forM_ (Map.toList . unPatchMap $ patchMapInitialize x0) $ uncurry handleFinal
     performEvent_ $
-      ffor (updatedIncremental fsIncFinal) $ \m ->
+      ffor xDiff $ \m -> do
         liftIO $ print m
-    void $
-      networkView $
-        ffor (incrementalToDynamic fsIncFinal) $ \(Map.keys -> fs) ->
-          liftIO $ print fs
+        forM_ (Map.toList . unPatchMap $ m) $ uncurry handleFinal
     pure never
+
+patchMapInitialize :: Map k v -> PatchMap k v
+patchMapInitialize = PatchMap . fmap Just
+
+handleFinal :: MonadIO m => FilePath -> Maybe ByteString -> m ()
+handleFinal f ms = do
+  let g = "/tmp/g/" <> replaceExtension (takeFileName f) ".html"
+  case ms of
+    Just s -> do
+      liftIO $ putTextLn $ "WRI " <> toText g
+      writeFileBS g $ "<pre>" <> s <> "</pre>"
+    Nothing -> do
+      liftIO $ putTextLn $ "DEL " <> toText g
+      liftIO $ removeFile g
 
 pipeDiscardContent :: (Reflex t, Ord k) => Incremental t (PatchMap k v) -> Incremental t (PatchMap k ())
 pipeDiscardContent =
