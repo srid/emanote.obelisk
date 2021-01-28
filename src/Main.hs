@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Main where
 
@@ -43,32 +44,62 @@ main :: IO ()
 main = do
   (inputDir, outputDir) <- execParser $ info (cliParser <**> helper) fullDesc
   runHeadlessApp $ do
-    fsInc <- getDirectoryFiles [".*/**"] inputDir
-    let fsIncFinal =
-          fsInc
-            & pipeFilterExt ".md"
-            & pipeFlattenFsTree (Tagged . T.replace " " "-" . T.toLower . toText . dropExtension . takeFileName)
-            & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
-    let xDiff = updatedIncremental fsIncFinal
-    x0 <- sample $ currentIncremental fsIncFinal
-    liftIO $ putTextLn $ "INI " <> show (fmap (second fst) x0)
-    forM_ (Map.toList . unPatchMap $ patchMapInitialize x0) $ uncurry (handleFinal outputDir)
-    performEvent_ $
-      ffor xDiff $ \m -> do
-        liftIO $ putTextLn $ "EVT " <> show (fmap (second fst) m)
-        forM_ (Map.toList . unPatchMap $ m) $ uncurry (handleFinal outputDir)
+    res <- runPipe <$> getDirectoryFiles [".*/**"] inputDir
+    drainPipe (generateHtmlFiles outputDir) res
     pure never
+
+drainPipe ::
+  forall t m k v.
+  ( Reflex t,
+    PerformEvent t m,
+    MonadSample t m,
+    MonadIO m,
+    MonadIO (Performable m),
+    Ord k,
+    Show k
+  ) =>
+  -- | Function that does the draining of individual values in the Incremental.
+  (forall m1. MonadIO m1 => k -> Maybe v -> m1 ()) ->
+  -- | The @Incremental@ coming out at the end of the pipeline.
+  Incremental t (PatchMap k v) ->
+  m ()
+drainPipe f fsIncFinal = do
+  -- Process initial data.
+  x0 <- sample $ currentIncremental fsIncFinal
+  liftIO $ putTextLn $ "INI " <> show (void x0)
+  forM_ (Map.toList . unPatchMap $ patchMapInitialize x0) $
+    uncurry f
+  let xE = updatedIncremental fsIncFinal
+  -- Process patches.
+  performEvent_ $
+    ffor xE $ \m -> do
+      liftIO $ putTextLn $ "EVT " <> show (void m)
+      forM_ (Map.toList . unPatchMap $ m) $ uncurry f
+  pure ()
   where
+    -- We "cheat" by treating the initial map as a patch map, that "adds" all
+    -- initial data.
     patchMapInitialize :: Map k v -> PatchMap k v
     patchMapInitialize = PatchMap . fmap Just
 
-handleFinal ::
+-- | Pipe the filesystem three through until determining the "final" data.
+runPipe ::
+  Reflex t =>
+  Incremental t (PatchMap FilePath ByteString) ->
+  Incremental t (PatchMap ID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)))
+runPipe x =
+  x
+    & pipeFilterExt ".md"
+    & pipeFlattenFsTree (Tagged . T.replace " " "-" . T.toLower . toText . dropExtension . takeFileName)
+    & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
+
+generateHtmlFiles ::
   MonadIO m =>
   FilePath ->
   ID ->
   Maybe (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)) ->
   m ()
-handleFinal outputDir (Tagged fId) mv = do
+generateHtmlFiles outputDir (Tagged fId) mv = do
   let k = addExtension (toString fId) ".html"
       g = outputDir <> k
   case mv of
