@@ -23,19 +23,25 @@ import Reflex.FSNotify (FSEvent, watchTree)
 import Reflex.Host.Headless (runHeadlessApp)
 import System.Directory (makeAbsolute, removeFile)
 import qualified System.FSNotify as FSN
-import System.FilePath (addExtension, dropExtension, isRelative, makeRelative, takeExtension, takeFileName, (</>))
+import System.FilePath (addExtension, addTrailingPathSeparator, dropExtension, isRelative, makeRelative, takeExtension, takeFileName, (</>))
 import System.FilePattern (FilePattern)
 import qualified System.FilePattern as FP
 import qualified System.FilePattern.Directory as SFD
 import Text.Pandoc.Definition (Pandoc)
 
-cliParser :: Parser FilePath
+cliParser :: Parser (FilePath, FilePath)
 cliParser =
-  strArgument (metavar "PATH" <> help "Input directory path")
+  (,)
+    <$> fmap
+      addTrailingPathSeparator
+      (strArgument (metavar "INPUT" <> help "Input directory path (.md files)"))
+    <*> fmap
+      addTrailingPathSeparator
+      (strArgument (metavar "OUTPUT" <> help "Output directory path (must exist)"))
 
 main :: IO ()
 main = do
-  inputDir <- execParser $ info (cliParser <**> helper) fullDesc
+  (inputDir, outputDir) <- execParser $ info (cliParser <**> helper) fullDesc
   runHeadlessApp $ do
     fsInc <- getDirectoryFiles [".*/**"] inputDir
     let fsIncFinal =
@@ -46,11 +52,11 @@ main = do
     let xDiff = updatedIncremental fsIncFinal
     x0 <- sample $ currentIncremental fsIncFinal
     liftIO $ putTextLn $ "INI " <> show (fmap (second fst) x0)
-    forM_ (Map.toList . unPatchMap $ patchMapInitialize x0) $ uncurry handleFinal
+    forM_ (Map.toList . unPatchMap $ patchMapInitialize x0) $ uncurry (handleFinal outputDir)
     performEvent_ $
       ffor xDiff $ \m -> do
         liftIO $ putTextLn $ "EVT " <> show (fmap (second fst) m)
-        forM_ (Map.toList . unPatchMap $ m) $ uncurry handleFinal
+        forM_ (Map.toList . unPatchMap $ m) $ uncurry (handleFinal outputDir)
     pure never
   where
     patchMapInitialize :: Map k v -> PatchMap k v
@@ -58,12 +64,13 @@ main = do
 
 handleFinal ::
   MonadIO m =>
+  FilePath ->
   ID ->
   Maybe (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)) ->
   m ()
-handleFinal (Tagged fId) mv = do
+handleFinal outputDir (Tagged fId) mv = do
   let k = addExtension (toString fId) ".html"
-      g = "/tmp/g/" <> k
+      g = outputDir <> k
   case mv of
     Just (Left conflict) -> do
       liftIO $ putTextLn $ "CON " <> show conflict
