@@ -144,6 +144,8 @@ getDirectoryFiles ignores p = do
         pure (f, s)
   fsPatches <- performEvent $
     ffor fsEvents $ \evts ->
+      -- FIXME: If the file is gone (probably tmp), we should just ignore this event.
+      -- But do it in a way to report to the user?
       liftIO $ readFilesAsPatchMap evts
   holdIncremental fs0 fsPatches
   where
