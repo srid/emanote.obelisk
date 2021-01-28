@@ -14,9 +14,10 @@ executable g
     relude (Relude as Prelude, Relude.Extra)
 
   hs-source-dirs:     src
-  exposed-modules:
+  other-modules:
     Data.Conflict
     Data.Conflict.Patch
+    G.FileSystem
     G.Markdown
     G.Markdown.WikiLink
 
