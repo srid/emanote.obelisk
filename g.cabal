@@ -20,9 +20,11 @@ executable g
     G.FileSystem
     G.Markdown
     G.Markdown.WikiLink
+    G.WebServer
 
   build-depends:
     , algebraic-graphs
+    , async
     , base
     , commonmark
     , commonmark-extensions
@@ -46,6 +48,10 @@ executable g
     , tagged
     , text
     , time
+    , snap
+    , snap-core 
+    , snap-server 
+    , heist
 
   default-extensions:
     DeriveGeneric

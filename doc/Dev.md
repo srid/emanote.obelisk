@@ -1,19 +1,19 @@
+# Development
+
 While hacking, run this:
 
 ```
 nix-shell --run 'ghcid -T ":main ./doc"'
 ```
 
-To build:
+To **build**:
 
 ```
 nix-build
 ```
 
-Then run it against your folder of Markdown files:
+Then **run** it against your folder of Markdown files:
 
 ```
-./result/bin/g /path/to/your/notebook
+./result/bin/g /path/to/your/notebook /path/to/output
 ```
-
-Output files are generated under `/tmp/g`.

@@ -5,6 +5,7 @@
 module Main where
 
 import qualified Commonmark.Syntax as CM
+import Control.Concurrent.Async (race_)
 import Data.Conflict (Conflict (..))
 import qualified Data.Conflict as Conflict
 import qualified Data.Conflict.Patch as Conflict
@@ -14,11 +15,12 @@ import qualified Data.Text as T
 import G.FileSystem (directoryTreeIncremental)
 import qualified G.Markdown as M
 import qualified G.Markdown.WikiLink as M
+import qualified G.WebServer as WS
 import Options.Applicative
 import Reflex
 import Reflex.Dom.Builder.Static (renderStatic)
 import qualified Reflex.Dom.Pandoc as PR
-import Reflex.Host.Headless (runHeadlessApp)
+import Reflex.Host.Headless (MonadHeadlessApp, runHeadlessApp)
 import System.Directory (removeFile)
 import System.FilePath (addExtension, addTrailingPathSeparator, dropExtension, takeExtension, takeFileName)
 import Text.Pandoc.Definition (Pandoc)
@@ -36,10 +38,18 @@ cliParser =
 main :: IO ()
 main = do
   (inputDir, outputDir) <- execParser $ info (cliParser <**> helper) fullDesc
-  runHeadlessApp $ do
-    res <- runPipe <$> directoryTreeIncremental [".*/**"] inputDir
-    drainPipe (generateHtmlFiles outputDir) res
-    pure never
+  race_
+    (runHeadlessApp $ pipeline inputDir outputDir)
+    (WS.run outputDir)
+
+pipeline :: MonadHeadlessApp t m => FilePath -> FilePath -> m (Event t ())
+pipeline inputDir outputDir = do
+  input <- directoryTreeIncremental [".*/**"] inputDir
+  let output = runPipe input
+  drainPipe
+    (mapM_ (uncurry $ generateHtmlFiles outputDir) . Map.toList . unPatchMap)
+    output
+  pure never
 
 drainPipe ::
   forall t m k v.
@@ -51,8 +61,10 @@ drainPipe ::
     Ord k,
     Show k
   ) =>
-  -- | Function that does the draining of individual values in the Incremental.
-  (forall m1. MonadIO m1 => k -> Maybe v -> m1 ()) ->
+  -- | Function that does the draining of the Incremental.
+  --
+  -- The initial value will be sent as a @PatchMap@ of only additions.
+  (forall m1. MonadIO m1 => PatchMap k v -> m1 ()) ->
   -- | The @Incremental@ coming out at the end of the pipeline.
   Incremental t (PatchMap k v) ->
   m ()
@@ -60,15 +72,13 @@ drainPipe f fsIncFinal = do
   -- Process initial data.
   x0 <- sample $ currentIncremental fsIncFinal
   liftIO $ putTextLn $ "INI " <> show (void x0)
-  forM_ (Map.toList . unPatchMap $ patchMapInitialize x0) $
-    uncurry f
-  let xE = updatedIncremental fsIncFinal
+  f $ patchMapInitialize x0
   -- Process patches.
+  let xE = updatedIncremental fsIncFinal
   performEvent_ $
     ffor xE $ \m -> do
       liftIO $ putTextLn $ "EVT " <> show (void m)
-      forM_ (Map.toList . unPatchMap $ m) $ uncurry f
-  pure ()
+      f m
   where
     -- We "cheat" by treating the initial map as a patch map, that "adds" all
     -- initial data.

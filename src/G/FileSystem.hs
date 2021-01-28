@@ -27,8 +27,11 @@ directoryTreeIncremental ::
     TriggerEvent t m,
     PerformEvent t m
   ) =>
+  -- | File patterns to ignore.
   [FilePattern] ->
+  -- | Directory root path.
   FilePath ->
+  -- | A reflex @Incremental@ mapping relative path to the file's content.
   m (Incremental t (PatchMap FilePath ByteString))
 directoryTreeIncremental ignores p = do
   fsEvents <- watchDirWithDebounce 0.1 ignores p
