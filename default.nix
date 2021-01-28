@@ -10,6 +10,9 @@ in
         doJailbreak 
           (self.callCabal2nix "reflex-fsnotify" 
             (import ./dep/reflex-fsnotify/thunk.nix) {});
+      reflex-dom-pandoc = 
+        (self.callCabal2nix "reflex-dom-pandoc" 
+          (import ./dep/reflex-dom-pandoc/thunk.nix) {});
     };
     modifier = drv:
       pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;

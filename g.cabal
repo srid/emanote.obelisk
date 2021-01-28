@@ -13,8 +13,7 @@ executable g
     base hiding (Prelude),
     relude (Relude as Prelude, Relude.Extra)
 
-  hs-source-dirs: src
-
+  hs-source-dirs:     src
   exposed-modules:
     Data.Conflict
     Data.Conflict.Patch
@@ -23,36 +22,38 @@ executable g
   build-depends:
     , algebraic-graphs
     , base
+    , commonmark
+    , commonmark-extensions
+    , commonmark-pandoc
     , containers
     , directory
     , filepath
     , filepattern
     , fsnotify
+    , megaparsec
+    , pandoc-types
+    , parsec
+    , parser-combinators
     , reflex
+    , reflex-dom-core
+    , reflex-dom-pandoc
     , reflex-fsnotify
     , relude
     , shower
+    , tagged
     , text
     , time
-    , pandoc-types 
-    , commonmark
-    , commonmark-extensions
-    , commonmark-pandoc
-    , tagged
-    , megaparsec
-    , parsec
-    , parser-combinators
 
   default-extensions:
     DeriveGeneric
     FlexibleContexts
     LambdaCase
+    MultiWayIf
     OverloadedStrings
     ScopedTypeVariables
     TupleSections
     TypeApplications
     ViewPatterns
-    MultiWayIf
 
   ghc-options:
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns

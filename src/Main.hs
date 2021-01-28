@@ -13,6 +13,8 @@ import qualified Data.Text as T
 import Data.Time.Clock (NominalDiffTime)
 import qualified G.Markdown as M
 import Reflex
+import Reflex.Dom.Builder.Static (renderStatic)
+import qualified Reflex.Dom.Pandoc as PR
 import Reflex.FSNotify (FSEvent, watchTree)
 import Reflex.Host.Headless (runHeadlessApp)
 import System.Directory (makeAbsolute, removeFile)
@@ -45,7 +47,11 @@ main = do
     patchMapInitialize :: Map k v -> PatchMap k v
     patchMapInitialize = PatchMap . fmap Just
 
-handleFinal :: MonadIO m => ID -> Maybe (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)) -> m ()
+handleFinal ::
+  MonadIO m =>
+  ID ->
+  Maybe (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)) ->
+  m ()
 handleFinal (Tagged fId) mv = do
   let k = replaceExtension (toString fId) ".html"
       g = "/tmp/g/" <> k
@@ -60,10 +66,15 @@ handleFinal (Tagged fId) mv = do
           writeFileText g $ "<pre>" <> err <> "</pre>"
         Right doc -> do
           liftIO $ putTextLn $ "WRI " <> toText k
-          writeFileBS g $ "<pre>" <> show doc <> "</pre>"
+          s <- liftIO $ renderPandoc doc
+          writeFileBS g $ "<pre>" <> s <> "</pre>"
     Nothing -> do
       liftIO $ putTextLn $ "DEL " <> toText k
       liftIO $ removeFile g
+  where
+    renderPandoc :: Pandoc -> IO ByteString
+    renderPandoc =
+      fmap snd . renderStatic . PR.elPandoc PR.defaultConfig
 
 pipeDiscardContent :: (Reflex t, Ord k) => Incremental t (PatchMap k v) -> Incremental t (PatchMap k ())
 pipeDiscardContent =
