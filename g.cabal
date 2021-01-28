@@ -59,6 +59,7 @@ executable g
     , time
     , with-utf8
     , lens
+    , map-syntax
 
   default-extensions:
     DeriveGeneric
