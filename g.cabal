@@ -17,6 +17,7 @@ executable g
   other-modules:
     Data.Conflict
     Data.Conflict.Patch
+    G.Db
     G.FileSystem
     G.Markdown
     G.Markdown.WikiLink
@@ -34,6 +35,7 @@ executable g
     , filepath
     , filepattern
     , fsnotify
+    , heist
     , megaparsec
     , optparse-applicative
     , pandoc-types
@@ -45,13 +47,14 @@ executable g
     , reflex-fsnotify
     , relude
     , shower
+    , snap
+    , snap-core
+    , snap-server
+    , stm
     , tagged
     , text
     , time
-    , snap
-    , snap-core 
-    , snap-server 
-    , heist
+    , with-utf8
 
   default-extensions:
     DeriveGeneric

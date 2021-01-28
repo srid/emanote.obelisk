@@ -1,16 +1,22 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 
 module G.Markdown.WikiLink
   ( wikiLinkSpec,
+    ID,
   )
 where
 
 import qualified Commonmark as CM
 import qualified Commonmark.Inlines as CM
 import Commonmark.TokParsers (noneOfToks, symbol)
+import Data.Tagged (Tagged)
 import qualified Data.Text as T
 import qualified Text.Megaparsec as M
 import qualified Text.Parsec as P
+
+-- | ID of a Markdown file. Semantically the same as wiki-link's body.
+type ID = Tagged "ID" Text
 
 wikiLinkSpec ::
   (Monad m, CM.IsBlock il bl, CM.IsInline il) =>

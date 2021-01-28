@@ -1,15 +1,23 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module G.WebServer where
 
+import G.Db (Db (..))
 import Snap.Core
 import Snap.Http.Server (quickHttpServe)
 import Snap.Util.FileServe (serveDirectory)
 
-run :: FilePath -> IO ()
-run = quickHttpServe . site
+run ::
+  FilePath ->
+  Db ->
+  IO ()
+run outputDir db = do
+  quickHttpServe $ site outputDir db
 
-site :: FilePath -> Snap ()
-site dirPath =
-  ifTop (writeBS "hello world")
+site :: FilePath -> Db -> Snap ()
+site dirPath Db {..} =
+  ifTop (writeBS . show . fmap void =<< liftIO (readTVarIO _db_data))
     <|> route
       [ ("k", writeBS "bar"),
         ("echo/:echoparam", echoHandler)

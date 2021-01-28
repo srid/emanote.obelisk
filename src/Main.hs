@@ -12,10 +12,13 @@ import qualified Data.Conflict.Patch as Conflict
 import qualified Data.Map as Map
 import Data.Tagged (Tagged (..))
 import qualified Data.Text as T
+import qualified G.Db as Db
 import G.FileSystem (directoryTreeIncremental)
 import qualified G.Markdown as M
 import qualified G.Markdown.WikiLink as M
 import qualified G.WebServer as WS
+import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
+import Main.Utf8 (withUtf8)
 import Options.Applicative
 import Reflex
 import Reflex.Dom.Builder.Static (renderStatic)
@@ -35,20 +38,33 @@ cliParser =
       addTrailingPathSeparator
       (strArgument (metavar "OUTPUT" <> help "Output directory path (must exist)"))
 
+type ResultPatches = PatchMap M.ID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc))
+
 main :: IO ()
 main = do
-  (inputDir, outputDir) <- execParser $ info (cliParser <**> helper) fullDesc
-  race_
-    (runHeadlessApp $ pipeline inputDir outputDir)
-    (WS.run outputDir)
+  hSetBuffering stdout LineBuffering
+  hSetBuffering stderr LineBuffering
+  withUtf8 $ do
+    (inputDir, outputDir) <- execParser $ info (cliParser <**> helper) fullDesc
+    db <- Db.newDb
+    race_
+      (runHeadlessApp $ pipeline inputDir outputDir db)
+      ( race_
+          (WS.run outputDir db)
+          (Db.run db)
+      )
 
-pipeline :: MonadHeadlessApp t m => FilePath -> FilePath -> m (Event t ())
-pipeline inputDir outputDir = do
+pipeline :: MonadHeadlessApp t m => FilePath -> FilePath -> Db.Db -> m (Event t ())
+pipeline inputDir outputDir db = do
   input <- directoryTreeIncremental [".*/**"] inputDir
   let output = runPipe input
-  drainPipe
-    (mapM_ (uncurry $ generateHtmlFiles outputDir) . Map.toList . unPatchMap)
-    output
+      drains =
+        [ -- Generate static HTML
+          mapM_ (uncurry $ generateHtmlFiles outputDir) . Map.toList . unPatchMap,
+          -- Communicate the patch to the other thread
+          Db.push db
+        ]
+  drainPipe drains output
   pure never
 
 drainPipe ::
@@ -61,24 +77,26 @@ drainPipe ::
     Ord k,
     Show k
   ) =>
-  -- | Function that does the draining of the Incremental.
+  -- | Functions that do the draining of the Incremental.
   --
   -- The initial value will be sent as a @PatchMap@ of only additions.
-  (forall m1. MonadIO m1 => PatchMap k v -> m1 ()) ->
+  [PatchMap k v -> IO ()] ->
   -- | The @Incremental@ coming out at the end of the pipeline.
   Incremental t (PatchMap k v) ->
   m ()
-drainPipe f fsIncFinal = do
+drainPipe fs inc = do
   -- Process initial data.
-  x0 <- sample $ currentIncremental fsIncFinal
-  liftIO $ putTextLn $ "INI " <> show (void x0)
-  f $ patchMapInitialize x0
+  x0 <- sample $ currentIncremental inc
+  liftIO $ do
+    putTextLn $ "INI " <> show (void x0)
+    sequence_ $ fs ?? patchMapInitialize x0
   -- Process patches.
-  let xE = updatedIncremental fsIncFinal
+  let xE = updatedIncremental inc
   performEvent_ $
     ffor xE $ \m -> do
-      liftIO $ putTextLn $ "EVT " <> show (void m)
-      f m
+      liftIO $ do
+        putTextLn $ "EVT " <> show (void m)
+        sequence_ $ fs ?? m
   where
     -- We "cheat" by treating the initial map as a patch map, that "adds" all
     -- initial data.
@@ -89,7 +107,7 @@ drainPipe f fsIncFinal = do
 runPipe ::
   Reflex t =>
   Incremental t (PatchMap FilePath ByteString) ->
-  Incremental t (PatchMap ID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)))
+  Incremental t (PatchMap M.ID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)))
 runPipe x =
   x
     & pipeFilterExt ".md"
@@ -99,11 +117,11 @@ runPipe x =
 generateHtmlFiles ::
   MonadIO m =>
   FilePath ->
-  ID ->
+  M.ID ->
   Maybe (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)) ->
   m ()
-generateHtmlFiles outputDir (Tagged fId) mv = do
-  let k = addExtension (toString fId) ".html"
+generateHtmlFiles outputDir (Tagged fID) mv = do
+  let k = addExtension (toString fID) ".html"
       g = outputDir <> k
   case mv of
     Just (Left conflict) -> do
@@ -141,26 +159,23 @@ pipeFilterExt ext =
 pipeParseMarkdown ::
   (Reflex t, Functor f, Functor g, M.MarkdownSyntaxSpec m il bl) =>
   CM.SyntaxSpec m il bl ->
-  Incremental t (PatchMap ID (f (g ByteString))) ->
-  Incremental t (PatchMap ID (f (g (Either M.ParserError Pandoc))))
+  Incremental t (PatchMap M.ID (f (g ByteString))) ->
+  Incremental t (PatchMap M.ID (f (g (Either M.ParserError Pandoc))))
 pipeParseMarkdown spec =
   unsafeMapIncremental
-    (Map.mapWithKey $ \fId -> (fmap . fmap) (parse fId))
+    (Map.mapWithKey $ \fID -> (fmap . fmap) (parse fID))
     (PatchMap . Map.mapWithKey ((fmap . fmap . fmap) . parse) . unPatchMap)
   where
-    parse :: ID -> ByteString -> Either M.ParserError Pandoc
+    parse :: M.ID -> ByteString -> Either M.ParserError Pandoc
     parse (Tagged (toString -> fn)) = M.parseMarkdown spec fn . decodeUtf8
-
--- | ID of a Markdown file
-type ID = Tagged "ID" Text
 
 pipeFlattenFsTree ::
   forall t v.
   (Reflex t) =>
   -- | How to flatten the file path.
-  (FilePath -> ID) ->
+  (FilePath -> M.ID) ->
   Incremental t (PatchMap FilePath v) ->
-  Incremental t (PatchMap ID (Either (Conflict FilePath v) (FilePath, v)))
+  Incremental t (PatchMap M.ID (Either (Conflict FilePath v) (FilePath, v)))
 pipeFlattenFsTree toKey = do
   unsafeMapIncrementalWithOldValue
     (Conflict.resolveConflicts toKey)
