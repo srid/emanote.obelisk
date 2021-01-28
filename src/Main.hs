@@ -1,14 +1,15 @@
 module Main where
 
 import Control.Monad.Fix (MonadFix)
+import Data.Conflict (Conflict (..))
+import qualified Data.Conflict as Conflict
+import qualified Data.Conflict.Patch as Conflict
 import Data.List (nubBy)
-import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Time.Clock (NominalDiffTime)
 import Reflex
 import Reflex.FSNotify (FSEvent, watchTree)
 import Reflex.Host.Headless (runHeadlessApp)
-import Relude.Extra (groupBy)
 import System.Directory (makeAbsolute, removeFile)
 import qualified System.FSNotify as FSN
 import System.FilePath (isRelative, makeRelative, replaceExtension, takeExtension, takeFileName)
@@ -62,46 +63,6 @@ pipeFilterExt ext =
     (Map.mapMaybeWithKey $ \fs x -> guard (takeExtension fs == ext) >> pure x)
     (PatchMap . Map.mapMaybeWithKey (\fs x -> guard (takeExtension fs == ".md") >> pure x) . unPatchMap)
 
--- | Represent identifier conflicts
---
--- A conflict happens when a key maps to two or more values, each identified by
--- an unique identifier.
-data Conflict identifier a = Conflict (identifier, a) (NonEmpty (identifier, a))
-  deriving (Show)
-
--- | Mark the given value as no longer conflicting.
---
--- If the conflict is resolved as a consequence, return the final value.
-lowerConflict :: forall k a. Eq k => k -> Conflict k a -> Either (k, a) (Conflict k a)
-lowerConflict x c = do
-  case unconsConflict x c of
-    Nothing ->
-      Right c
-    Just (a :| as) ->
-      case nonEmpty as of
-        Nothing -> Left a
-        Just as' -> Right $ Conflict a as'
-
-increaseConflict :: Eq identifier => identifier -> a -> Conflict identifier a -> Conflict identifier a
-increaseConflict x v c =
-  if x `identifierConflicts` c
-    then c
-    else consConflict x v c
-
-unconsConflict :: Eq identifier => identifier -> Conflict identifier a -> Maybe (NonEmpty (identifier, a))
-unconsConflict x (Conflict e es)
-  | x == fst e = Just es
-  | x `elem` fmap fst es = Just $ e :| List.filter ((== x) . fst) (toList es)
-  | otherwise = Nothing
-
-consConflict :: identifier -> a -> Conflict identifier a -> Conflict identifier a
-consConflict x v (Conflict e1 (e2 :| es)) =
-  Conflict (x, v) (e1 :| e2 : es)
-
-identifierConflicts :: Eq identifier => identifier -> Conflict identifier a -> Bool
-identifierConflicts x (Conflict e es) =
-  x `elem` (fst <$> e : toList es)
-
 -- | Like `unsafeMapIncremental` but the patch function also takes the old
 -- target.
 unsafeMapIncrementalWithOldValue ::
@@ -123,65 +84,9 @@ pipeFlattenFsTree ::
   Incremental t (PatchMap FilePath v) ->
   Incremental t (PatchMap k (Either (Conflict FilePath v) (FilePath, v)))
 pipeFlattenFsTree toKey = do
-  unsafeMapIncrementalWithOldValue f g
-  where
-    f :: Map FilePath v -> Map k (Either (Conflict FilePath v) (FilePath, v))
-    f =
-      Map.map
-        ( \case
-            (x :| []) -> Right x
-            (x :| (y : ys)) -> Left $ Conflict x (y :| ys)
-        )
-        . groupBy (toKey . fst)
-        . Map.toList
-    g :: Map FilePath v -> PatchMap FilePath v -> PatchMap k (Either (Conflict FilePath v) (FilePath, v))
-    g m p =
-      -- Ugly, but works (TM)
-      -- TODO: Write tests spec, and then refactor.
-      let m' = f m
-       in PatchMap $
-            flip Map.mapWithKey (groupBy (toKey . fst) (Map.toList (unPatchMap p))) $ \k grouped -> case grouped of
-              (fp, val) :| [] -> case val of
-                Nothing ->
-                  -- Deletion event
-                  case Map.lookup k m' of
-                    Nothing -> Nothing
-                    Just (Left conflict) ->
-                      case lowerConflict fp conflict of
-                        Left prev ->
-                          -- Conflict resolved; return the previous data.
-                          Just $ Right prev
-                        Right c2 ->
-                          -- Conflict still exists, but with one less file.
-                          Just (Left c2)
-                    Just (Right _v) ->
-                      Nothing
-                Just v ->
-                  -- Modification/addition event
-                  case Map.lookup k m' of
-                    Nothing ->
-                      Just $ Right (fp, v)
-                    Just (Left conflict) ->
-                      Just $ Left $ increaseConflict fp v conflict
-                    Just (Right (oldFp, oldVal)) ->
-                      if oldFp == fp
-                        then Just $ Right (fp, v)
-                        else Just $ Left $ Conflict (oldFp, oldVal) ((fp, v) :| [])
-              conflictingPatches ->
-                let exists = fmapMaybe (\(a, mb) -> (a,) <$> mb) (toList conflictingPatches)
-                 in case Map.lookup k m' of
-                      Nothing ->
-                        case exists of
-                          [] -> Nothing
-                          [v] -> Just (Right v)
-                          (v1 : v2 : vs) -> Just $ Left $ Conflict v1 (v2 :| vs)
-                      Just (Left conflict) ->
-                        Just $ Left $ foldl' (flip $ uncurry increaseConflict) conflict exists
-                      Just (Right old) ->
-                        case exists of
-                          [] -> Nothing
-                          [v] -> Just (Right v)
-                          (v1 : v2 : vs) -> Just $ Left $ Conflict old (v1 :| v2 : vs)
+  unsafeMapIncrementalWithOldValue
+    (Conflict.resolveConflicts toKey)
+    (Conflict.applyPatch toKey)
 
 -- | Return a reflex Incremental reflecting the selected files in a directory tree.
 --

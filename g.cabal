@@ -13,6 +13,8 @@ executable g
     base hiding (Prelude),
     relude (Relude as Prelude, Relude.Extra)
 
+  hs-source-dirs: src
+
   build-depends:
     , algebraic-graphs
     , base
