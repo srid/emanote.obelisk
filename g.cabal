@@ -15,6 +15,11 @@ executable g
 
   hs-source-dirs: src
 
+  exposed-modules:
+    Data.Conflict
+    Data.Conflict.Patch
+    G.Markdown
+
   build-depends:
     , algebraic-graphs
     , base
@@ -33,6 +38,10 @@ executable g
     , commonmark
     , commonmark-extensions
     , commonmark-pandoc
+    , tagged
+    , megaparsec
+    , parsec
+    , parser-combinators
 
   default-extensions:
     DeriveGeneric

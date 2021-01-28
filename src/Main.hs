@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 module Main where
 
 import Control.Monad.Fix (MonadFix)
@@ -6,7 +8,10 @@ import qualified Data.Conflict as Conflict
 import qualified Data.Conflict.Patch as Conflict
 import Data.List (nubBy)
 import qualified Data.Map as Map
+import Data.Tagged (Tagged (..))
+import qualified Data.Text as T
 import Data.Time.Clock (NominalDiffTime)
+import qualified G.Markdown as M
 import Reflex
 import Reflex.FSNotify (FSEvent, watchTree)
 import Reflex.Host.Headless (runHeadlessApp)
@@ -16,6 +21,7 @@ import System.FilePath (isRelative, makeRelative, replaceExtension, takeExtensio
 import System.FilePattern (FilePattern)
 import qualified System.FilePattern as FP
 import qualified System.FilePattern.Directory as SFD
+import Text.Pandoc.Definition (Pandoc)
 
 main :: IO ()
 main = do
@@ -24,7 +30,8 @@ main = do
     let fsIncFinal =
           fsInc
             & pipeFilterExt ".md"
-            & pipeFlattenFsTree (toText . takeFileName)
+            & pipeFlattenFsTree (Tagged . T.replace " " "-" . T.toLower . toText . takeFileName)
+            & pipeParseMarkdown
     let xDiff = updatedIncremental fsIncFinal
     x0 <- sample $ currentIncremental fsIncFinal
     liftIO $ putTextLn $ "INI " <> show (fmap (second fst) x0)
@@ -34,21 +41,26 @@ main = do
         liftIO $ putTextLn $ "EVT " <> show (fmap (second fst) m)
         forM_ (Map.toList . unPatchMap $ m) $ uncurry handleFinal
     pure never
+  where
+    patchMapInitialize :: Map k v -> PatchMap k v
+    patchMapInitialize = PatchMap . fmap Just
 
-patchMapInitialize :: Map k v -> PatchMap k v
-patchMapInitialize = PatchMap . fmap Just
-
-handleFinal :: MonadIO m => Text -> Maybe (Either (Conflict FilePath ByteString) (FilePath, ByteString)) -> m ()
-handleFinal f mv = do
-  let k = replaceExtension (toString f) ".html"
+handleFinal :: MonadIO m => ID -> Maybe (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)) -> m ()
+handleFinal (Tagged fId) mv = do
+  let k = replaceExtension (toString fId) ".html"
       g = "/tmp/g/" <> k
   case mv of
     Just (Left conflict) -> do
       liftIO $ putTextLn $ "CON " <> show conflict
       writeFileBS g $ "<p style='color: red'>" <> show conflict <> "</p>"
-    Just (Right (_fp, s)) -> do
-      liftIO $ putTextLn $ "WRI " <> toText k
-      writeFileBS g $ "<pre>" <> s <> "</pre>"
+    Just (Right (_fp, eres)) -> do
+      case eres of
+        Left (Tagged err) -> do
+          liftIO $ putTextLn $ "ERR " <> err
+          writeFileText g $ "<pre>" <> err <> "</pre>"
+        Right doc -> do
+          liftIO $ putTextLn $ "WRI " <> toText k
+          writeFileBS g $ "<pre>" <> show doc <> "</pre>"
     Nothing -> do
       liftIO $ putTextLn $ "DEL " <> toText k
       liftIO $ removeFile g
@@ -57,32 +69,38 @@ pipeDiscardContent :: (Reflex t, Ord k) => Incremental t (PatchMap k v) -> Incre
 pipeDiscardContent =
   unsafeMapIncremental void void
 
-pipeFilterExt :: Reflex t => String -> Incremental t (PatchMap FilePath v) -> Incremental t (PatchMap FilePath v)
+pipeFilterExt ::
+  Reflex t =>
+  String ->
+  Incremental t (PatchMap FilePath v) ->
+  Incremental t (PatchMap FilePath v)
 pipeFilterExt ext =
   unsafeMapIncremental
     (Map.mapMaybeWithKey $ \fs x -> guard (takeExtension fs == ext) >> pure x)
     (PatchMap . Map.mapMaybeWithKey (\fs x -> guard (takeExtension fs == ".md") >> pure x) . unPatchMap)
 
--- | Like `unsafeMapIncremental` but the patch function also takes the old
--- target.
-unsafeMapIncrementalWithOldValue ::
-  (Reflex t, Patch p, Patch p') =>
-  (PatchTarget p -> PatchTarget p') ->
-  (PatchTarget p -> p -> p') ->
-  Incremental t p ->
-  Incremental t p'
-unsafeMapIncrementalWithOldValue f g x =
-  let x0 = currentIncremental x
-      xE = updatedIncremental x
-   in unsafeBuildIncremental (f <$> sample x0) $ uncurry g <$> attach x0 xE
+pipeParseMarkdown ::
+  (Reflex t, Functor f, Functor g) =>
+  Incremental t (PatchMap ID (f (g ByteString))) ->
+  Incremental t (PatchMap ID (f (g (Either M.ParserError Pandoc))))
+pipeParseMarkdown =
+  unsafeMapIncremental
+    (Map.mapWithKey $ \fId -> (fmap . fmap) (parse fId))
+    (PatchMap . Map.mapWithKey ((fmap . fmap . fmap) . parse) . unPatchMap)
+  where
+    parse :: ID -> ByteString -> Either M.ParserError Pandoc
+    parse (Tagged (toString -> fn)) = M.parseMarkdown M.markdownSpec fn . decodeUtf8
+
+-- | ID of a Markdown file
+type ID = Tagged "ID" Text
 
 pipeFlattenFsTree ::
-  forall t k v.
-  (Reflex t, Ord k) =>
+  forall t v.
+  (Reflex t) =>
   -- | How to flatten the file path.
-  (FilePath -> k) ->
+  (FilePath -> ID) ->
   Incremental t (PatchMap FilePath v) ->
-  Incremental t (PatchMap k (Either (Conflict FilePath v) (FilePath, v)))
+  Incremental t (PatchMap ID (Either (Conflict FilePath v) (FilePath, v)))
 pipeFlattenFsTree toKey = do
   unsafeMapIncrementalWithOldValue
     (Conflict.resolveConflicts toKey)
@@ -194,3 +212,16 @@ watchDirWithDebounce ms ignores dirPath' = do
           -- Discard sylinks targetting elsewhere
           guard $ isRelative rel
           pure rel
+
+-- | Like `unsafeMapIncremental` but the patch function also takes the old
+-- target.
+unsafeMapIncrementalWithOldValue ::
+  (Reflex t, Patch p, Patch p') =>
+  (PatchTarget p -> PatchTarget p') ->
+  (PatchTarget p -> p -> p') ->
+  Incremental t p ->
+  Incremental t p'
+unsafeMapIncrementalWithOldValue f g x =
+  let x0 = currentIncremental x
+      xE = updatedIncremental x
+   in unsafeBuildIncremental (f <$> sample x0) $ uncurry g <$> attach x0 xE
