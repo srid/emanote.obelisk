@@ -11,7 +11,7 @@ executable g
   main-is:            Main.hs
   mixins:
     base hiding (Prelude),
-    relude (Relude as Prelude)
+    relude (Relude as Prelude, Relude.Extra)
 
   build-depends:
     , algebraic-graphs
@@ -27,6 +27,10 @@ executable g
     , shower
     , text
     , time
+    , pandoc-types 
+    , commonmark
+    , commonmark-extensions
+    , commonmark-pandoc
 
   default-extensions:
     DeriveGeneric
@@ -37,6 +41,7 @@ executable g
     TupleSections
     TypeApplications
     ViewPatterns
+    MultiWayIf
 
   ghc-options:
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns

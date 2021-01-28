@@ -2,11 +2,13 @@ module Main where
 
 import Control.Monad.Fix (MonadFix)
 import Data.List (nubBy)
+import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Time.Clock (NominalDiffTime)
 import Reflex
 import Reflex.FSNotify (FSEvent, watchTree)
 import Reflex.Host.Headless (runHeadlessApp)
+import Relude.Extra (groupBy)
 import System.Directory (makeAbsolute, removeFile)
 import qualified System.FSNotify as FSN
 import System.FilePath (isRelative, makeRelative, replaceExtension, takeExtension, takeFileName)
@@ -17,33 +19,37 @@ import qualified System.FilePattern.Directory as SFD
 main :: IO ()
 main = do
   runHeadlessApp $ do
-    liftIO $ putTextLn "Will exit if anything changes in PWD ..."
     fsInc <- getDirectoryFiles [".*/**"] "."
     let fsIncFinal =
           fsInc
             & pipeFilterExt ".md"
+            & pipeFlattenFsTree (toText . takeFileName)
     let xDiff = updatedIncremental fsIncFinal
     x0 <- sample $ currentIncremental fsIncFinal
-    liftIO $ print x0
+    liftIO $ putTextLn $ "INI " <> show (fmap (second fst) x0)
     forM_ (Map.toList . unPatchMap $ patchMapInitialize x0) $ uncurry handleFinal
     performEvent_ $
       ffor xDiff $ \m -> do
-        liftIO $ print m
+        liftIO $ putTextLn $ "EVT " <> show (fmap (second fst) m)
         forM_ (Map.toList . unPatchMap $ m) $ uncurry handleFinal
     pure never
 
 patchMapInitialize :: Map k v -> PatchMap k v
 patchMapInitialize = PatchMap . fmap Just
 
-handleFinal :: MonadIO m => FilePath -> Maybe ByteString -> m ()
-handleFinal f ms = do
-  let g = "/tmp/g/" <> replaceExtension (takeFileName f) ".html"
-  case ms of
-    Just s -> do
-      liftIO $ putTextLn $ "WRI " <> toText g
+handleFinal :: MonadIO m => Text -> Maybe (Either (Conflict FilePath ByteString) (FilePath, ByteString)) -> m ()
+handleFinal f mv = do
+  let k = replaceExtension (toString f) ".html"
+      g = "/tmp/g/" <> k
+  case mv of
+    Just (Left conflict) -> do
+      liftIO $ putTextLn $ "CON " <> show conflict
+      writeFileBS g $ "<p style='color: red'>" <> show conflict <> "</p>"
+    Just (Right (_fp, s)) -> do
+      liftIO $ putTextLn $ "WRI " <> toText k
       writeFileBS g $ "<pre>" <> s <> "</pre>"
     Nothing -> do
-      liftIO $ putTextLn $ "DEL " <> toText g
+      liftIO $ putTextLn $ "DEL " <> toText k
       liftIO $ removeFile g
 
 pipeDiscardContent :: (Reflex t, Ord k) => Incremental t (PatchMap k v) -> Incremental t (PatchMap k ())
@@ -55,6 +61,127 @@ pipeFilterExt ext =
   unsafeMapIncremental
     (Map.mapMaybeWithKey $ \fs x -> guard (takeExtension fs == ext) >> pure x)
     (PatchMap . Map.mapMaybeWithKey (\fs x -> guard (takeExtension fs == ".md") >> pure x) . unPatchMap)
+
+-- | Represent identifier conflicts
+--
+-- A conflict happens when a key maps to two or more values, each identified by
+-- an unique identifier.
+data Conflict identifier a = Conflict (identifier, a) (NonEmpty (identifier, a))
+  deriving (Show)
+
+-- | Mark the given value as no longer conflicting.
+--
+-- If the conflict is resolved as a consequence, return the final value.
+lowerConflict :: forall k a. Eq k => k -> Conflict k a -> Either (k, a) (Conflict k a)
+lowerConflict x c = do
+  case unconsConflict x c of
+    Nothing ->
+      Right c
+    Just (a :| as) ->
+      case nonEmpty as of
+        Nothing -> Left a
+        Just as' -> Right $ Conflict a as'
+
+increaseConflict :: Eq identifier => identifier -> a -> Conflict identifier a -> Conflict identifier a
+increaseConflict x v c =
+  if x `identifierConflicts` c
+    then c
+    else consConflict x v c
+
+unconsConflict :: Eq identifier => identifier -> Conflict identifier a -> Maybe (NonEmpty (identifier, a))
+unconsConflict x (Conflict e es)
+  | x == fst e = Just es
+  | x `elem` fmap fst es = Just $ e :| List.filter ((== x) . fst) (toList es)
+  | otherwise = Nothing
+
+consConflict :: identifier -> a -> Conflict identifier a -> Conflict identifier a
+consConflict x v (Conflict e1 (e2 :| es)) =
+  Conflict (x, v) (e1 :| e2 : es)
+
+identifierConflicts :: Eq identifier => identifier -> Conflict identifier a -> Bool
+identifierConflicts x (Conflict e es) =
+  x `elem` (fst <$> e : toList es)
+
+-- | Like `unsafeMapIncremental` but the patch function also takes the old
+-- target.
+unsafeMapIncrementalWithOldValue ::
+  (Reflex t, Patch p, Patch p') =>
+  (PatchTarget p -> PatchTarget p') ->
+  (PatchTarget p -> p -> p') ->
+  Incremental t p ->
+  Incremental t p'
+unsafeMapIncrementalWithOldValue f g x =
+  let x0 = currentIncremental x
+      xE = updatedIncremental x
+   in unsafeBuildIncremental (f <$> sample x0) $ uncurry g <$> attach x0 xE
+
+pipeFlattenFsTree ::
+  forall t k v.
+  (Reflex t, Ord k) =>
+  -- | How to flatten the file path.
+  (FilePath -> k) ->
+  Incremental t (PatchMap FilePath v) ->
+  Incremental t (PatchMap k (Either (Conflict FilePath v) (FilePath, v)))
+pipeFlattenFsTree toKey = do
+  unsafeMapIncrementalWithOldValue f g
+  where
+    f :: Map FilePath v -> Map k (Either (Conflict FilePath v) (FilePath, v))
+    f =
+      Map.map
+        ( \case
+            (x :| []) -> Right x
+            (x :| (y : ys)) -> Left $ Conflict x (y :| ys)
+        )
+        . groupBy (toKey . fst)
+        . Map.toList
+    g :: Map FilePath v -> PatchMap FilePath v -> PatchMap k (Either (Conflict FilePath v) (FilePath, v))
+    g m p =
+      -- Ugly, but works (TM)
+      -- TODO: Write tests spec, and then refactor.
+      let m' = f m
+       in PatchMap $
+            flip Map.mapWithKey (groupBy (toKey . fst) (Map.toList (unPatchMap p))) $ \k grouped -> case grouped of
+              (fp, val) :| [] -> case val of
+                Nothing ->
+                  -- Deletion event
+                  case Map.lookup k m' of
+                    Nothing -> Nothing
+                    Just (Left conflict) ->
+                      case lowerConflict fp conflict of
+                        Left prev ->
+                          -- Conflict resolved; return the previous data.
+                          Just $ Right prev
+                        Right c2 ->
+                          -- Conflict still exists, but with one less file.
+                          Just (Left c2)
+                    Just (Right _v) ->
+                      Nothing
+                Just v ->
+                  -- Modification/addition event
+                  case Map.lookup k m' of
+                    Nothing ->
+                      Just $ Right (fp, v)
+                    Just (Left conflict) ->
+                      Just $ Left $ increaseConflict fp v conflict
+                    Just (Right (oldFp, oldVal)) ->
+                      if oldFp == fp
+                        then Just $ Right (fp, v)
+                        else Just $ Left $ Conflict (oldFp, oldVal) ((fp, v) :| [])
+              conflictingPatches ->
+                let exists = fmapMaybe (\(a, mb) -> (a,) <$> mb) (toList conflictingPatches)
+                 in case Map.lookup k m' of
+                      Nothing ->
+                        case exists of
+                          [] -> Nothing
+                          [v] -> Just (Right v)
+                          (v1 : v2 : vs) -> Just $ Left $ Conflict v1 (v2 :| vs)
+                      Just (Left conflict) ->
+                        Just $ Left $ foldl' (flip $ uncurry increaseConflict) conflict exists
+                      Just (Right old) ->
+                        case exists of
+                          [] -> Nothing
+                          [v] -> Just (Right v)
+                          (v1 : v2 : vs) -> Just $ Left $ Conflict old (v1 :| v2 : vs)
 
 -- | Return a reflex Incremental reflecting the selected files in a directory tree.
 --
