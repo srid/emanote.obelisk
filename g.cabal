@@ -32,6 +32,7 @@ executable g
     , filepattern
     , fsnotify
     , megaparsec
+    , optparse-applicative
     , pandoc-types
     , parsec
     , parser-combinators

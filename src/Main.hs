@@ -15,6 +15,7 @@ import qualified Data.Text as T
 import Data.Time.Clock (NominalDiffTime)
 import qualified G.Markdown as M
 import qualified G.Markdown.WikiLink as M
+import Options.Applicative
 import Reflex
 import Reflex.Dom.Builder.Static (renderStatic)
 import qualified Reflex.Dom.Pandoc as PR
@@ -22,16 +23,21 @@ import Reflex.FSNotify (FSEvent, watchTree)
 import Reflex.Host.Headless (runHeadlessApp)
 import System.Directory (makeAbsolute, removeFile)
 import qualified System.FSNotify as FSN
-import System.FilePath (addExtension, dropExtension, isRelative, makeRelative, takeExtension, takeFileName)
+import System.FilePath (addExtension, dropExtension, isRelative, makeRelative, takeExtension, takeFileName, (</>))
 import System.FilePattern (FilePattern)
 import qualified System.FilePattern as FP
 import qualified System.FilePattern.Directory as SFD
 import Text.Pandoc.Definition (Pandoc)
 
+cliParser :: Parser FilePath
+cliParser =
+  strArgument (metavar "PATH" <> help "Input directory path")
+
 main :: IO ()
 main = do
+  inputDir <- execParser $ info (cliParser <**> helper) fullDesc
   runHeadlessApp $ do
-    fsInc <- getDirectoryFiles [".*/**"] "."
+    fsInc <- getDirectoryFiles [".*/**"] inputDir
     let fsIncFinal =
           fsInc
             & pipeFilterExt ".md"
@@ -144,7 +150,7 @@ getDirectoryFiles ignores p = do
     fs <- SFD.getDirectoryFilesIgnore p ["**"] ignores
     fmap Map.fromList $
       forM fs $ \f -> do
-        s <- readFileBS f
+        s <- readFileBS (p </> f)
         pure (f, s)
   fsPatches <- performEvent $
     ffor fsEvents $ \evts ->
@@ -159,9 +165,9 @@ getDirectoryFiles ignores p = do
       where
         go = \case
           FSN.Added fp _time False ->
-            Just . (fp,) . Just <$> readFileBS fp
+            Just . (fp,) . Just <$> readFileBS (p </> fp)
           FSN.Modified fp _time False ->
-            Just . (fp,) . Just <$> readFileBS fp
+            Just . (fp,) . Just <$> readFileBS (p </> fp)
           FSN.Removed fp _time False ->
             pure $ Just (fp, Nothing)
           _ ->
