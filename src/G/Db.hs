@@ -7,11 +7,15 @@ import Control.Concurrent.STM (TChan, newTChanIO, readTChan, writeTChan)
 import Data.Conflict (Conflict)
 import qualified G.Markdown as M
 import qualified G.Markdown.WikiLink as M
-import Reflex
-import Text.Pandoc.Definition
+import Reflex (Patch (apply), PatchMap)
+import Text.Pandoc.Definition (Pandoc)
 
+-- | A dumb database to manage Haskell values in-memory across threads, while
+-- supporting a way to "patch" them.
 data Db = Db
-  { _db_data :: TVar (Map M.ID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc))),
+  { -- | Snapshot of the data at any point in time
+    _db_data :: TVar (Map M.ID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc))),
+    -- | The channel to stream reflex patches from Incremental
     _db_changes :: TChan (PatchMap M.ID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)))
   }
 

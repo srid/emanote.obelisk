@@ -6,6 +6,9 @@ license-file:       LICENSE
 author:             Sridhar Ratnakumar
 maintainer:         srid@srid.ca
 extra-source-files: CHANGELOG.md
+data-files:
+  snaplets/heist/templates/base.tpl
+  snaplets/heist/templates/index.tpl
 
 executable g
   main-is:            Main.hs
@@ -55,6 +58,7 @@ executable g
     , text
     , time
     , with-utf8
+    , lens
 
   default-extensions:
     DeriveGeneric
