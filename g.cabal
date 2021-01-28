@@ -18,6 +18,7 @@ executable g
     Data.Conflict
     Data.Conflict.Patch
     G.Markdown
+    G.Markdown.WikiLink
 
   build-depends:
     , algebraic-graphs

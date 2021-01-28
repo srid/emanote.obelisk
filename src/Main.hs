@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
 
 module Main where
 
+import qualified Commonmark.Syntax as CM
 import Control.Monad.Fix (MonadFix)
 import Data.Conflict (Conflict (..))
 import qualified Data.Conflict as Conflict
@@ -12,6 +14,7 @@ import Data.Tagged (Tagged (..))
 import qualified Data.Text as T
 import Data.Time.Clock (NominalDiffTime)
 import qualified G.Markdown as M
+import qualified G.Markdown.WikiLink as M
 import Reflex
 import Reflex.Dom.Builder.Static (renderStatic)
 import qualified Reflex.Dom.Pandoc as PR
@@ -19,7 +22,7 @@ import Reflex.FSNotify (FSEvent, watchTree)
 import Reflex.Host.Headless (runHeadlessApp)
 import System.Directory (makeAbsolute, removeFile)
 import qualified System.FSNotify as FSN
-import System.FilePath (isRelative, makeRelative, replaceExtension, takeExtension, takeFileName)
+import System.FilePath (addExtension, dropExtension, isRelative, makeRelative, takeExtension, takeFileName)
 import System.FilePattern (FilePattern)
 import qualified System.FilePattern as FP
 import qualified System.FilePattern.Directory as SFD
@@ -32,8 +35,8 @@ main = do
     let fsIncFinal =
           fsInc
             & pipeFilterExt ".md"
-            & pipeFlattenFsTree (Tagged . T.replace " " "-" . T.toLower . toText . takeFileName)
-            & pipeParseMarkdown
+            & pipeFlattenFsTree (Tagged . T.replace " " "-" . T.toLower . toText . dropExtension . takeFileName)
+            & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
     let xDiff = updatedIncremental fsIncFinal
     x0 <- sample $ currentIncremental fsIncFinal
     liftIO $ putTextLn $ "INI " <> show (fmap (second fst) x0)
@@ -53,7 +56,7 @@ handleFinal ::
   Maybe (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)) ->
   m ()
 handleFinal (Tagged fId) mv = do
-  let k = replaceExtension (toString fId) ".html"
+  let k = addExtension (toString fId) ".html"
       g = "/tmp/g/" <> k
   case mv of
     Just (Left conflict) -> do
@@ -91,16 +94,17 @@ pipeFilterExt ext =
     (PatchMap . Map.mapMaybeWithKey (\fs x -> guard (takeExtension fs == ".md") >> pure x) . unPatchMap)
 
 pipeParseMarkdown ::
-  (Reflex t, Functor f, Functor g) =>
+  (Reflex t, Functor f, Functor g, M.MarkdownSyntaxSpec m il bl) =>
+  CM.SyntaxSpec m il bl ->
   Incremental t (PatchMap ID (f (g ByteString))) ->
   Incremental t (PatchMap ID (f (g (Either M.ParserError Pandoc))))
-pipeParseMarkdown =
+pipeParseMarkdown spec =
   unsafeMapIncremental
     (Map.mapWithKey $ \fId -> (fmap . fmap) (parse fId))
     (PatchMap . Map.mapWithKey ((fmap . fmap . fmap) . parse) . unPatchMap)
   where
     parse :: ID -> ByteString -> Either M.ParserError Pandoc
-    parse (Tagged (toString -> fn)) = M.parseMarkdown M.markdownSpec fn . decodeUtf8
+    parse (Tagged (toString -> fn)) = M.parseMarkdown spec fn . decodeUtf8
 
 -- | ID of a Markdown file
 type ID = Tagged "ID" Text
