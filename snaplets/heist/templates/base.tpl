@@ -5,7 +5,7 @@
   </head>
   <body>
     <div id="content">
-      <h1>Welcome to g</h1>
+      <h1>Welcome to g (WIP)</h1>
       <apply-content/>
 
     </div>

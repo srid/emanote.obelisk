@@ -1,24 +1,25 @@
 { pkgs ? import ./dep/nixpkgs {} }:
 let 
   inherit (import ./dep/gitignoresrc { inherit (pkgs) lib; }) gitignoreSource;
-in 
-  pkgs.haskellPackages.developPackage {
-    name = "g";
-    root = gitignoreSource ./.;
+  hp = (pkgs.haskellPackages.override {
     overrides = self: super: with pkgs.haskell.lib; {
       reflex-fsnotify = 
         doJailbreak 
           (self.callCabal2nix "reflex-fsnotify" 
             (import ./dep/reflex-fsnotify/thunk.nix) {});
-      reflex-dom-pandoc = 
-        (self.callCabal2nix "reflex-dom-pandoc" 
-          (import ./dep/reflex-dom-pandoc/thunk.nix) {});
     };
-    modifier = drv:
-      pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;
-        [ cabal-install
-          cabal-fmt
-          ghcid
-          haskell-language-server
-        ]);
-  }
+  }).extend (pkgs.haskell.lib.packageSourceOverrides {
+    g = gitignoreSource ./.;
+    reflex-dom-pandoc = import ./dep/reflex-dom-pandoc/thunk.nix;
+  });
+  shell = hp.shellFor {
+    packages = p: [ p.g ];
+    buildInputs = 
+      [ hp.cabal-install
+        hp.cabal-fmt
+        hp.ghcid
+        hp.haskell-language-server
+      ];
+  };
+in 
+  if pkgs.lib.inNixShell then shell else hp.g

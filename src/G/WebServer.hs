@@ -76,6 +76,8 @@ routes outputDir db =
 
 app :: FilePath -> Db -> SnapletInit App App
 app outputDir db = makeSnaplet "app" "An snaplet example application." Nothing $ do
+  -- TODO: This looks for ./snaplets/heist/templates; look instead in source
+  -- directory. Why is Snap hardcoding this path?
   h <- nestSnaplet "/heist_debug" app_heist $ heistInit "templates"
   addRoutes $ routes outputDir db
   pure $ App h
