@@ -39,6 +39,8 @@ executable g
     , filepattern
     , fsnotify
     , heist
+    , lens
+    , map-syntax
     , megaparsec
     , optparse-applicative
     , pandoc-types
@@ -58,8 +60,7 @@ executable g
     , text
     , time
     , with-utf8
-    , lens
-    , map-syntax
+    , xmlhtml
 
   default-extensions:
     DeriveGeneric

@@ -11,7 +11,6 @@ import qualified Commonmark as CM
 import qualified Commonmark.Inlines as CM
 import Commonmark.TokParsers (noneOfToks, symbol)
 import Data.Tagged (Tagged)
-import qualified Data.Text as T
 import qualified Text.Megaparsec as M
 import qualified Text.Parsec as P
 
@@ -46,5 +45,4 @@ wikiLinkSpec =
       pure s
     cmAutoLink :: CM.IsInline a => Text -> a
     cmAutoLink url =
-      let htmlUrl = (T.replace " " "-" . T.toLower) url <> ".html" -- HACK, until we do it properly
-       in CM.link htmlUrl "" $ CM.str url
+      CM.link url "" $ CM.str url

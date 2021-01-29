@@ -11,7 +11,6 @@ import qualified Data.Conflict as Conflict
 import qualified Data.Conflict.Patch as Conflict
 import qualified Data.Map as Map
 import Data.Tagged (Tagged (..))
-import qualified Data.Text as T
 import qualified G.Db as Db
 import G.FileSystem (directoryTreeIncremental)
 import qualified G.Markdown as M
@@ -111,7 +110,7 @@ runPipe ::
 runPipe x =
   x
     & pipeFilterExt ".md"
-    & pipeFlattenFsTree (Tagged . T.replace " " "-" . T.toLower . toText . dropExtension . takeFileName)
+    & pipeFlattenFsTree (Tagged . toText . dropExtension . takeFileName)
     & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
 
 generateHtmlFiles ::

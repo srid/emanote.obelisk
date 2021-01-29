@@ -20,6 +20,7 @@ import Snap.Snaplet
 import Snap.Snaplet.Heist.Interpreted
 import Snap.Util.FileServe (serveDirectory)
 import Text.Pandoc.Definition (Pandoc)
+import qualified Text.XmlHtml as X
 
 data App = App
   { _app_heist :: Snaplet (Heist App)
@@ -46,13 +47,22 @@ handleMThing Db {..} = do
           handleThing thing
   where
     handleThing thing = do
-      s <- case thing of
-        Left c -> pure $ toText $ Shower.shower c
-        Right (_fp, Left err) -> pure $ toText $ Shower.shower err
-        Right (_fp, Right doc) ->
-          decodeUtf8 <$> liftIO (renderPandoc doc)
+      -- TODO: Refactor, and do it properly
+      let mkSplice = case thing of
+            Left c -> I.textSplice $ toText $ Shower.shower c
+            Right (_fp, Left err) -> I.textSplice $ toText $ Shower.shower err
+            Right (_fp, Right doc) -> do
+              html <- liftIO (renderPandoc doc)
+              -- TODO: Don't do this. Just write commonmark renderer, that
+              -- directly creates these nodes.
+              case X.parseXML "<from-pandoc>" html of
+                Left err -> I.textSplice (toText err)
+                Right (X.HtmlDocument _ _ nodes) ->
+                  pure nodes
+                Right (X.XmlDocument _ _ nodes) ->
+                  pure nodes
       heistLocal
-        (I.bindSplices $ "somethin" ## I.textSplice s)
+        (I.bindSplices $ "somethin" ## mkSplice)
         (render "index")
     renderPandoc :: Pandoc -> IO ByteString
     renderPandoc =
