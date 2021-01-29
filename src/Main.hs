@@ -54,12 +54,12 @@ main = do
       )
 
 pipeline :: MonadHeadlessApp t m => FilePath -> FilePath -> Db.Db -> m (Event t ())
-pipeline inputDir outputDir db = do
+pipeline inputDir _outputDir db = do
   input <- directoryTreeIncremental [".*/**"] inputDir
   let output = runPipe input
       drains =
         [ -- Generate static HTML
-          mapM_ (uncurry $ generateHtmlFiles outputDir) . Map.toList . unPatchMap,
+          -- mapM_ (uncurry $ generateHtmlFiles outputDir) . Map.toList . unPatchMap,
           -- Communicate the patch to the other thread
           Db.push db
         ]

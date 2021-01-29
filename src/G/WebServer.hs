@@ -8,7 +8,7 @@ import Control.Lens (makeLenses)
 import qualified Data.Map.Strict as Map
 import Data.Map.Syntax
 import Data.Tagged
-import G.Db (Db (..))
+import G.Db (Db (..), Zk (..))
 import G.Markdown.WikiLink (ID)
 import qualified Heist.Interpreted as I
 import Reflex.Dom.Builder.Static (renderStatic)
@@ -39,7 +39,7 @@ handleMThing Db {..} = do
     Nothing ->
       writeBS "404"
     Just (Tagged . decodeUtf8 -> (thingID :: ID)) -> do
-      m <- liftIO (readTVarIO _db_data)
+      m <- _zk_zettels <$> liftIO (readTVarIO _db_data)
       case Map.lookup thingID m of
         Nothing ->
           writeBS "Thing not found"
