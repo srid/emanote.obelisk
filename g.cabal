@@ -18,6 +18,8 @@ executable g
     Data.Conflict
     Data.Conflict.Patch
     G.Db
+    G.Db.Types.Zk
+    G.Db.Types.Zk.Patch
     G.FileSystem
     G.Graph
     G.Graph.Patch

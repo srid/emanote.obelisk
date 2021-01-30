@@ -2,7 +2,8 @@ module G.WebServer (run) where
 
 import qualified Data.Map.Strict as Map
 import Data.Tagged (Tagged (Tagged))
-import G.Db (Db (..), Zk (..))
+import G.Db (Db (..))
+import G.Db.Types.Zk (Zk (..))
 import Reflex.Dom.Core
 import qualified Reflex.Dom.Pandoc as PR
 import qualified Shower

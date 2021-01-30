@@ -10,6 +10,7 @@ import qualified Data.Conflict.Patch as Conflict
 import qualified Data.Map as Map
 import Data.Tagged (Tagged (..))
 import qualified G.Db as Db
+import qualified G.Db.Types.Zk.Patch as Db
 import G.FileSystem (directoryTreeIncremental)
 import qualified G.Markdown as M
 import qualified G.Markdown.WikiLink as M
