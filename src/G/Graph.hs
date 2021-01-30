@@ -4,31 +4,22 @@ module G.Graph where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
 import qualified Data.Map.Strict as Map
-import G.Markdown.WikiLink (WikiLinkID)
+import G.Markdown.WikiLink (WikiLinkID, WikiLinkLabel)
 import Reflex.Patch.Class (Patch (..))
-
-data Label
-  = Unlabelled
-  | Labelled [Text]
-  deriving (Eq, Ord, Show)
-
-instance Semigroup Label where
-  Unlabelled <> Unlabelled = Unlabelled
-  Labelled s <> Unlabelled = Labelled s
-  Unlabelled <> Labelled s = Labelled s
-  Labelled s1 <> Labelled s2 = Labelled (s1 <> s2)
 
 type V = WikiLinkID
 
-newtype Graph = Graph {unGraph :: AM.AdjacencyMap (Maybe Label) V}
+type E = [WikiLinkLabel]
+
+newtype Graph = Graph {unGraph :: AM.AdjacencyMap E V}
   deriving (Eq, Show)
 
-newtype PatchGraph = PatchGraph {unPatchGraph :: Map V (Maybe [V])}
+newtype PatchGraph = PatchGraph {unPatchGraph :: Map V (Maybe [(E, V)])}
 
 instance Patch PatchGraph where
   type PatchTarget PatchGraph = Graph
   apply (PatchGraph p) (Graph graph) =
-    Graph <$> patch (fmap (fmap (fmap (Just Unlabelled,))) p) graph
+    Graph <$> patch p graph
     where
       patch ::
         (Ord v, Eq e, Monoid e) =>

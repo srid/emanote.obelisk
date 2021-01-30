@@ -113,7 +113,7 @@ runPipe ::
             ( FilePath,
               Either
                 M.ParserError
-                ([M.WikiLinkID], Pandoc)
+                ([(M.WikiLinkLabel, M.WikiLinkID)], Pandoc)
             )
         )
     )
@@ -195,7 +195,7 @@ pipeExtractLinks ::
   forall t f g h.
   (Reflex t, Functor f, Functor g, Functor h) =>
   Incremental t (PatchMap M.WikiLinkID (f (g (h Pandoc)))) ->
-  Incremental t (PatchMap M.WikiLinkID (f (g (h ([M.WikiLinkID], Pandoc)))))
+  Incremental t (PatchMap M.WikiLinkID (f (g (h ([(M.WikiLinkLabel, M.WikiLinkID)], Pandoc)))))
 pipeExtractLinks = do
   unsafeMapIncremental
     (Map.map $ (fmap . fmap . fmap) f)
@@ -203,8 +203,13 @@ pipeExtractLinks = do
   where
     f doc =
       let links = LC.queryLinksWithContext doc
+          getTitleAttr =
+            Map.lookup "title" . Map.fromList
        in -- TODO: propagate link context
-          (M.parseWikiLinkUrl `fmapMaybe` Map.keys links, doc)
+          ( (\(url, (getTitleAttr -> tit, _ctx)) -> M.parseWikiLinkUrl tit url)
+              `fmapMaybe` Map.toList links,
+            doc
+          )
 
 -- | Like `unsafeMapIncremental` but the patch function also takes the old
 -- target.

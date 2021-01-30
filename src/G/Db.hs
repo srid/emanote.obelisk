@@ -37,7 +37,18 @@ data ZkPatch = ZkPatch
     _zkPatch_graph :: PatchGraph
   }
 
-mkZkPatch :: PatchMap M.WikiLinkID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError ([M.WikiLinkID], Pandoc))) -> ZkPatch
+mkZkPatch ::
+  PatchMap
+    M.WikiLinkID
+    ( Either
+        (Conflict FilePath ByteString)
+        ( FilePath,
+          Either
+            M.ParserError
+            ([(M.WikiLinkLabel, M.WikiLinkID)], Pandoc)
+        )
+    ) ->
+  ZkPatch
 mkZkPatch p =
   let _zkPatch_zettels =
         (fmap . fmap . fmap . fmap) snd p
@@ -45,7 +56,7 @@ mkZkPatch p =
         Graph.PatchGraph . unPatchMap $
           p
             <&> concat . \case
-              Right (_, Right (ids, _)) -> [ids]
+              Right (_, Right (ids, _)) -> [first one <$> ids]
               _ -> []
    in ZkPatch {..}
 

@@ -32,9 +32,9 @@ data WikiLinkLabel
 
 instance Show WikiLinkLabel where
   show = \case
-    WikiLinkLabel_Unlabelled -> "[[]]"
-    WikiLinkLabel_Branch -> "[[]]#"
-    WikiLinkLabel_Tag -> "#[[]]"
+    WikiLinkLabel_Unlabelled -> "link:nolbl"
+    WikiLinkLabel_Branch -> "link:branch"
+    WikiLinkLabel_Tag -> "link:tag"
 
 instance Read WikiLinkLabel where
   readsPrec _ s
@@ -85,8 +85,10 @@ renderWikiLinkUrl (Tagged s) = s
 
 -- | Parse what was rendered by renderWikiLinkUrl
 -- TODO: Extract label!
-parseWikiLinkUrl :: Text -> Maybe WikiLinkID
-parseWikiLinkUrl s = do
+parseWikiLinkUrl :: Maybe Text -> Text -> Maybe (WikiLinkLabel, WikiLinkID)
+parseWikiLinkUrl mtitle s = do
   guard $ not $ ":" `T.isInfixOf` s
   guard $ not $ "/" `T.isInfixOf` s
-  pure $ Tagged s
+  let linkLabel = fromMaybe WikiLinkLabel_Unlabelled $ readMaybe . toString =<< mtitle
+      linkId = Tagged s
+  pure (linkLabel, linkId)
