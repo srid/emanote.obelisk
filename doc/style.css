@@ -13,10 +13,6 @@ h1, h2, h3, h4, h5, h6 {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
-article > h1 { 
-  text-align: center;
-  text-decoration: underline wavy #c418511a;
-}
 
 header {
   background-color: #c418511a;
@@ -35,4 +31,25 @@ footer {
   color: gray;
   border-top: 1px dotted; 
   margin-top: 2em;
+}
+
+/* Style WikiLinkIDs uniquely, across semantic elements (title & likns) */
+article > h1 { 
+  text-align: center;
+  text-decoration: underline wavy #c418511a;
+}
+[title^="link:"] {
+  font-weight: bolder;
+  text-decoration: underline wavy #c418511a;
+}
+[title="link:branch"]::after {
+  content: "#";
+  color: gray;
+  opacity: 0.5;
+}
+
+[title="link:tag"]::before {
+  content: "#";
+  color: gray;
+  opacity: 0.5;
 }

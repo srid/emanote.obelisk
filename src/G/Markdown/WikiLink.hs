@@ -104,9 +104,7 @@ instance Read WikiLinkLabel where
     | otherwise = []
 
 renderWikiLinkLabel :: WikiLinkLabel -> Text
-renderWikiLinkLabel = \case
-  WikiLinkLabel_Unlabelled -> ""
-  x -> show x
+renderWikiLinkLabel = show
 
 -- | Determine label from the optional "title" attribute
 parseWikiLinkLabel :: Maybe Text -> WikiLinkLabel
