@@ -40,9 +40,6 @@ executable g
     , filepath
     , filepattern
     , fsnotify
-    , heist
-    , lens
-    , map-syntax
     , megaparsec
     , optparse-applicative
     , pandoc-link-context
@@ -55,15 +52,12 @@ executable g
     , reflex-fsnotify
     , relude
     , shower
-    , snap
-    , snap-core
-    , snap-server
     , stm
     , tagged
     , text
     , time
     , with-utf8
-    , xmlhtml
+    , scotty
 
   default-extensions:
     DeriveGeneric
