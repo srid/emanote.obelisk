@@ -40,7 +40,7 @@ runPipe ::
             ( FilePath,
               Either
                 M.ParserError
-                ([(M.WikiLinkLabel, M.WikiLinkID)], Pandoc)
+                ([((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)], Pandoc)
             )
         )
     )
@@ -92,7 +92,7 @@ pipeExtractLinks ::
   forall t f g h.
   (Reflex t, Functor f, Functor g, Functor h) =>
   Incremental t (PatchMap M.WikiLinkID (f (g (h Pandoc)))) ->
-  Incremental t (PatchMap M.WikiLinkID (f (g (h ([(M.WikiLinkLabel, M.WikiLinkID)], Pandoc)))))
+  Incremental t (PatchMap M.WikiLinkID (f (g (h ([((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)], Pandoc)))))
 pipeExtractLinks = do
   unsafeMapIncremental
     (Map.map $ (fmap . fmap . fmap) f)
@@ -102,8 +102,7 @@ pipeExtractLinks = do
       let links = LC.queryLinksWithContext doc
           getTitleAttr =
             Map.lookup "title" . Map.fromList
-       in -- TODO: propagate link context
-          ( (\(url, (getTitleAttr -> tit, _ctx)) -> M.parseWikiLinkUrl tit url)
+       in ( (\(url, (getTitleAttr -> tit, ctx)) -> first (,ctx) <$> M.parseWikiLinkUrl tit url)
               `fmapMaybe` Map.toList links,
             doc
           )

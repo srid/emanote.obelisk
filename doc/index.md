@@ -2,5 +2,5 @@
 
 This shall be user documentation. 
 
-- [[Dev]]#
-- [[KISS]]
+- Wanna hack? See [[Dev]]#
+- Philosophy: [[KISS]]

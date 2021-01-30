@@ -5,6 +5,7 @@ module G.Markdown.WikiLink
   ( wikiLinkSpec,
     WikiLinkID,
     WikiLinkLabel,
+    WikiLinkContext,
     parseWikiLinkUrl,
   )
 where
@@ -15,6 +16,7 @@ import Commonmark.TokParsers (noneOfToks, symbol)
 import Data.Tagged (Tagged (..), untag)
 import qualified Data.Text as T
 import qualified Text.Megaparsec as M
+import Text.Pandoc.Definition (Block)
 import qualified Text.Parsec as P
 import Text.Read
 import qualified Text.Show (Show (..))
@@ -78,6 +80,9 @@ data WikiLinkLabel
   | -- | #[[Foo]]
     WikiLinkLabel_Tag
   deriving (Eq, Ord)
+
+-- | The AST "surrounding" a wiki-link (any link, in fact)
+type WikiLinkContext = [Block]
 
 -- Show value is stored in the `title` attribute of the <a> element (of Pandoc
 -- AST), and then retrieved later using the Read instance further below. This is

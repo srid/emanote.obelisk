@@ -1,11 +1,11 @@
 module G.Graph where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
-import G.Markdown.WikiLink (WikiLinkID, WikiLinkLabel)
+import G.Markdown.WikiLink (WikiLinkContext, WikiLinkID, WikiLinkLabel)
 
 type V = WikiLinkID
 
-type E = [WikiLinkLabel]
+type E = [(WikiLinkLabel, WikiLinkContext)]
 
 newtype Graph = Graph {unGraph :: AM.AdjacencyMap E V}
   deriving (Eq, Show)

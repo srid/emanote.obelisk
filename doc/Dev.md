@@ -3,7 +3,7 @@
 While hacking, run this:
 
 ```
-nix-shell --run 'ghcid -T ":main ./doc"'
+bin/run ./doc
 ```
 
 To **build**:

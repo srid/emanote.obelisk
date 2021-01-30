@@ -33,7 +33,7 @@ mkZkPatch ::
         ( FilePath,
           Either
             M.ParserError
-            ([(M.WikiLinkLabel, M.WikiLinkID)], Pandoc)
+            ([((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)], Pandoc)
         )
     ) ->
   ZkPatch
