@@ -8,7 +8,7 @@ import G.Graph.Patch (PatchGraph (..))
 import qualified G.Markdown as M
 import qualified G.Markdown.WikiLink as M
 import Reflex (PatchMap (unPatchMap))
-import Reflex.Patch.Class
+import Reflex.Patch.Class (Patch (..))
 import Text.Pandoc.Definition (Pandoc)
 
 data ZkPatch = ZkPatch

@@ -59,6 +59,7 @@ executable g
     , tagged
     , text
     , time
+    , wai-middleware-static
     , with-utf8
 
   default-extensions:

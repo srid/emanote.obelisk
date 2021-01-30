@@ -1,5 +1,3 @@
-# Development
-
 While hacking, run this:
 
 ```

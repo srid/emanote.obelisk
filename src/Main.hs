@@ -28,6 +28,6 @@ main = do
     race_
       (runHeadlessApp $ Pipeline.run inputDir db)
       ( race_
-          (WS.run db)
+          (WS.run inputDir db)
           (Db.run db)
       )

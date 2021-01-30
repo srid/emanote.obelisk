@@ -1,0 +1,2 @@
+- Just start writing your `.md` files
+- Style your website by writing `style.css` (`g` produces HTML using semantic tags)
