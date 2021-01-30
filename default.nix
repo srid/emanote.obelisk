@@ -11,6 +11,7 @@ let
   }).extend (pkgs.haskell.lib.packageSourceOverrides {
     g = gitignoreSource ./.;
     reflex-dom-pandoc = import ./dep/reflex-dom-pandoc/thunk.nix;
+    pandoc-link-context = import ./dep/pandoc-link-context/thunk.nix;
   });
   shell = hp.shellFor {
     packages = p: [ p.g ];

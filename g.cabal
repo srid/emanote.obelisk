@@ -22,6 +22,7 @@ executable g
     Data.Conflict.Patch
     G.Db
     G.FileSystem
+    G.Graph
     G.Markdown
     G.Markdown.WikiLink
     G.WebServer
@@ -34,6 +35,7 @@ executable g
     , commonmark-extensions
     , commonmark-pandoc
     , containers
+    , data-default
     , directory
     , filepath
     , filepattern
@@ -43,6 +45,7 @@ executable g
     , map-syntax
     , megaparsec
     , optparse-applicative
+    , pandoc-link-context
     , pandoc-types
     , parsec
     , parser-combinators
@@ -61,7 +64,6 @@ executable g
     , time
     , with-utf8
     , xmlhtml
-    , data-default
 
   default-extensions:
     DeriveGeneric

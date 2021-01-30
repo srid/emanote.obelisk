@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
@@ -26,6 +27,7 @@ import Reflex.Host.Headless (MonadHeadlessApp, runHeadlessApp)
 import System.Directory (removeFile)
 import System.FilePath (addExtension, addTrailingPathSeparator, dropExtension, takeExtension, takeFileName)
 import Text.Pandoc.Definition (Pandoc)
+import qualified Text.Pandoc.LinkContext as LC
 
 cliParser :: Parser (FilePath, FilePath)
 cliParser =
@@ -36,8 +38,6 @@ cliParser =
     <*> fmap
       addTrailingPathSeparator
       (strArgument (metavar "OUTPUT" <> help "Output directory path (must exist)"))
-
-type ResultPatches = PatchMap M.ID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc))
 
 main :: IO ()
 main = do
@@ -60,8 +60,9 @@ pipeline inputDir _outputDir db = do
       drains =
         [ -- Generate static HTML
           -- mapM_ (uncurry $ generateHtmlFiles outputDir) . Map.toList . unPatchMap,
+
           -- Communicate the patch to the other thread
-          Db.push db
+          Db.patchDb db . Db.mkZkPatch
         ]
   drainPipe drains output
   pure never
@@ -106,17 +107,30 @@ drainPipe fs inc = do
 runPipe ::
   Reflex t =>
   Incremental t (PatchMap FilePath ByteString) ->
-  Incremental t (PatchMap M.ID (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)))
+  Incremental
+    t
+    ( PatchMap
+        M.WikiLinkID
+        ( Either
+            (Conflict FilePath ByteString)
+            ( FilePath,
+              Either
+                M.ParserError
+                ([M.WikiLinkID], Pandoc)
+            )
+        )
+    )
 runPipe x =
   x
     & pipeFilterExt ".md"
     & pipeFlattenFsTree (Tagged . toText . dropExtension . takeFileName)
     & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
+    & pipeExtractLinks
 
 generateHtmlFiles ::
   MonadIO m =>
   FilePath ->
-  M.ID ->
+  M.WikiLinkID ->
   Maybe (Either (Conflict FilePath ByteString) (FilePath, Either M.ParserError Pandoc)) ->
   m ()
 generateHtmlFiles outputDir (Tagged fID) mv = do
@@ -158,27 +172,42 @@ pipeFilterExt ext =
 pipeParseMarkdown ::
   (Reflex t, Functor f, Functor g, M.MarkdownSyntaxSpec m il bl) =>
   CM.SyntaxSpec m il bl ->
-  Incremental t (PatchMap M.ID (f (g ByteString))) ->
-  Incremental t (PatchMap M.ID (f (g (Either M.ParserError Pandoc))))
+  Incremental t (PatchMap M.WikiLinkID (f (g ByteString))) ->
+  Incremental t (PatchMap M.WikiLinkID (f (g (Either M.ParserError Pandoc))))
 pipeParseMarkdown spec =
   unsafeMapIncremental
     (Map.mapWithKey $ \fID -> (fmap . fmap) (parse fID))
     (PatchMap . Map.mapWithKey ((fmap . fmap . fmap) . parse) . unPatchMap)
   where
-    parse :: M.ID -> ByteString -> Either M.ParserError Pandoc
+    parse :: M.WikiLinkID -> ByteString -> Either M.ParserError Pandoc
     parse (Tagged (toString -> fn)) = M.parseMarkdown spec fn . decodeUtf8
 
 pipeFlattenFsTree ::
   forall t v.
   (Reflex t) =>
   -- | How to flatten the file path.
-  (FilePath -> M.ID) ->
+  (FilePath -> M.WikiLinkID) ->
   Incremental t (PatchMap FilePath v) ->
-  Incremental t (PatchMap M.ID (Either (Conflict FilePath v) (FilePath, v)))
+  Incremental t (PatchMap M.WikiLinkID (Either (Conflict FilePath v) (FilePath, v)))
 pipeFlattenFsTree toKey = do
   unsafeMapIncrementalWithOldValue
     (Conflict.resolveConflicts toKey)
     (Conflict.applyPatch toKey)
+
+pipeExtractLinks ::
+  forall t f g h.
+  (Reflex t, Functor f, Functor g, Functor h) =>
+  Incremental t (PatchMap M.WikiLinkID (f (g (h Pandoc)))) ->
+  Incremental t (PatchMap M.WikiLinkID (f (g (h ([M.WikiLinkID], Pandoc)))))
+pipeExtractLinks = do
+  unsafeMapIncremental
+    (Map.map $ (fmap . fmap . fmap) f)
+    (PatchMap . Map.map ((fmap . fmap . fmap . fmap) f) . unPatchMap)
+  where
+    f doc =
+      let links = LC.queryLinksWithContext doc
+       in -- TODO: propagate link context
+          (M.parseWikiLinkUrl `fmapMaybe` Map.keys links, doc)
 
 -- | Like `unsafeMapIncremental` but the patch function also takes the old
 -- target.

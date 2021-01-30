@@ -3,19 +3,21 @@
 
 module G.Markdown.WikiLink
   ( wikiLinkSpec,
-    ID,
+    WikiLinkID,
+    parseWikiLinkUrl,
   )
 where
 
 import qualified Commonmark as CM
 import qualified Commonmark.Inlines as CM
 import Commonmark.TokParsers (noneOfToks, symbol)
-import Data.Tagged (Tagged)
+import Data.Tagged (Tagged (..), untag)
+import qualified Data.Text as T
 import qualified Text.Megaparsec as M
 import qualified Text.Parsec as P
 
--- | ID of a Markdown file. Semantically the same as wiki-link's body.
-type ID = Tagged "ID" Text
+-- | The inner text of a wiki link.
+type WikiLinkID = Tagged "WikiLinkID" Text
 
 wikiLinkSpec ::
   (Monad m, CM.IsBlock il bl, CM.IsInline il) =>
@@ -37,12 +39,26 @@ wikiLinkSpec =
             cmAutoLink <$> P.try (wikiLinkP 2 <* symbol '#'),
             cmAutoLink <$> P.try (wikiLinkP 2)
           ]
-    wikiLinkP :: Monad m => Int -> P.ParsecT [CM.Tok] s m Text
+    wikiLinkP :: Monad m => Int -> P.ParsecT [CM.Tok] s m WikiLinkID
     wikiLinkP n = do
       void $ M.count n $ symbol '['
-      s <- fmap CM.untokenize $ some $ noneOfToks [CM.Symbol ']', CM.Symbol '[', CM.LineEnd]
+      s <-
+        fmap CM.untokenize $
+          some $
+            noneOfToks [CM.Symbol ']', CM.Symbol '[', CM.LineEnd]
       void $ M.count n $ symbol ']'
-      pure s
-    cmAutoLink :: CM.IsInline a => Text -> a
-    cmAutoLink url =
-      CM.link url "" $ CM.str url
+      pure $ Tagged s
+    cmAutoLink :: CM.IsInline a => WikiLinkID -> a
+    cmAutoLink s =
+      CM.link (renderWikiLinkUrl s) "" $ CM.str (untag s)
+
+-- | Make [[Foo]] link to "Foo". In future, make this configurable.
+renderWikiLinkUrl :: WikiLinkID -> Text
+renderWikiLinkUrl (Tagged s) = s
+
+-- | Parse what was rendered by renderWikiLinkUrl
+parseWikiLinkUrl :: Text -> Maybe WikiLinkID
+parseWikiLinkUrl s = do
+  guard $ not $ ":" `T.isInfixOf` s
+  guard $ not $ "/" `T.isInfixOf` s
+  pure $ Tagged s

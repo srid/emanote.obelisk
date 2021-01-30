@@ -9,7 +9,7 @@ import qualified Data.Map.Strict as Map
 import Data.Map.Syntax
 import Data.Tagged
 import G.Db (Db (..), Zk (..))
-import G.Markdown.WikiLink (ID)
+import G.Markdown.WikiLink (WikiLinkID)
 import qualified Heist.Interpreted as I
 import Reflex.Dom.Builder.Static (renderStatic)
 import qualified Reflex.Dom.Pandoc as PR
@@ -38,7 +38,7 @@ handleMThing Db {..} = do
   getParam "thing" >>= \case
     Nothing ->
       writeBS "404"
-    Just (Tagged . decodeUtf8 -> (thingID :: ID)) -> do
+    Just (Tagged . decodeUtf8 -> (thingID :: WikiLinkID)) -> do
       m <- _zk_zettels <$> liftIO (readTVarIO _db_data)
       case Map.lookup thingID m of
         Nothing ->
@@ -70,9 +70,15 @@ handleMThing Db {..} = do
 
 routes :: FilePath -> Db -> [(ByteString, AppHandler ())]
 routes outputDir db =
-  [ ("/:thing", handleMThing db),
+  [ ("/", debugHandler db),
+    ("/:thing", handleMThing db),
     ("static", serveDirectory outputDir)
   ]
+
+debugHandler :: Db -> AppHandler ()
+debugHandler Db {..} = do
+  g <- _zk_graph <$> liftIO (readTVarIO _db_data)
+  writeBS $ encodeUtf8 $ Shower.shower g
 
 app :: FilePath -> Db -> SnapletInit App App
 app outputDir db = makeSnaplet "app" "An snaplet example application." Nothing $ do

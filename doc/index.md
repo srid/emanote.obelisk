@@ -1,3 +1,6 @@
 # g
 
-This shall be user documentation. For now, visit [[Dev]]
+This shall be user documentation. 
+
+- [[Dev]]
+- [[KISS]]
