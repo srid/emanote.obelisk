@@ -6,9 +6,6 @@ license-file:       LICENSE
 author:             Sridhar Ratnakumar
 maintainer:         srid@srid.ca
 extra-source-files: CHANGELOG.md
-data-files:
-  snaplets/heist/templates/base.tpl
-  snaplets/heist/templates/index.tpl
 
 executable g
   main-is:            Main.hs
@@ -69,6 +66,7 @@ executable g
     TupleSections
     TypeApplications
     ViewPatterns
+    RecordWildCards
 
   ghc-options:
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns

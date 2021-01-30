@@ -1,6 +1,3 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RecordWildCards #-}
-
 module G.Db where
 
 import Control.Concurrent.STM (TChan, newTChanIO, readTChan, writeTChan)

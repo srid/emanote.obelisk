@@ -1,7 +1,4 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
@@ -49,7 +46,7 @@ main = do
     race_
       (runHeadlessApp $ pipeline inputDir outputDir db)
       ( race_
-          (WS.run outputDir db)
+          (WS.run db)
           (Db.run db)
       )
 
