@@ -15,5 +15,5 @@ nix-build
 Then **run** it against your folder of Markdown files:
 
 ```
-./result/bin/g /path/to/your/notebook /path/to/output
+./result/bin/g /path/to/your/notebook 
 ```

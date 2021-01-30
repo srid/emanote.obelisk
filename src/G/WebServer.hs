@@ -4,6 +4,7 @@ import qualified Data.Map.Strict as Map
 import Data.Tagged (Tagged (Tagged))
 import G.Db (Db (..))
 import G.Db.Types.Zk (Zk (..))
+import G.Db.Types.Zk.Patch (ZkPatch)
 import Reflex.Dom.Core
 import qualified Reflex.Dom.Pandoc as PR
 import qualified Shower
@@ -11,7 +12,7 @@ import Web.Scotty (html, param, scotty)
 import qualified Web.Scotty as Scotty
 
 run ::
-  Db ->
+  Db ZkPatch ->
   IO ()
 run Db {..} = do
   scotty 3000 $ do
