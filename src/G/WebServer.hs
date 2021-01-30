@@ -21,6 +21,8 @@ run ::
 run inputDir Db {..} = do
   scotty 3000 $ do
     Scotty.middleware $ MStatic.staticPolicy (MStatic.addBase inputDir)
+    Scotty.get "/" $ do
+      html "Start here: <a href=/index>index</a>"
     Scotty.get "/:wikiLinkID" $ do
       wikiLinkID <- Tagged <$> param "wikiLinkID"
       zk@Zk {..} <- liftIO $ readTVarIO _db_data
