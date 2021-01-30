@@ -22,30 +22,6 @@ import qualified Text.Show (Show (..))
 -- | The inner text of a wiki link.
 type WikiLinkID = Tagged "WikiLinkID" Text
 
-data WikiLinkLabel
-  = WikiLinkLabel_Unlabelled
-  | -- | [[Foo]]#
-    WikiLinkLabel_Branch
-  | -- | #[[Foo]]
-    WikiLinkLabel_Tag
-  deriving (Eq, Ord)
-
-instance Show WikiLinkLabel where
-  show = \case
-    WikiLinkLabel_Unlabelled -> "link:nolbl"
-    WikiLinkLabel_Branch -> "link:branch"
-    WikiLinkLabel_Tag -> "link:tag"
-
-instance Read WikiLinkLabel where
-  readsPrec _ s
-    | s == show WikiLinkLabel_Unlabelled =
-      [(WikiLinkLabel_Unlabelled, "")]
-    | s == show WikiLinkLabel_Branch =
-      [(WikiLinkLabel_Branch, "")]
-    | s == show WikiLinkLabel_Tag =
-      [(WikiLinkLabel_Tag, "")]
-    | otherwise = []
-
 wikiLinkSpec ::
   (Monad m, CM.IsBlock il bl, CM.IsInline il) =>
   CM.SyntaxSpec m il bl
@@ -77,18 +53,58 @@ wikiLinkSpec =
       pure $ Tagged s
     cmAutoLink :: CM.IsInline a => WikiLinkLabel -> WikiLinkID -> a
     cmAutoLink lbl iD =
-      CM.link (renderWikiLinkUrl iD) (show lbl) $ CM.str (untag iD)
+      CM.link
+        (renderWikiLinkUrl iD)
+        (renderWikiLinkLabel lbl)
+        (CM.str $ untag iD)
 
 -- | Make [[Foo]] link to "Foo". In future, make this configurable.
 renderWikiLinkUrl :: WikiLinkID -> Text
 renderWikiLinkUrl (Tagged s) = s
 
 -- | Parse what was rendered by renderWikiLinkUrl
--- TODO: Extract label!
 parseWikiLinkUrl :: Maybe Text -> Text -> Maybe (WikiLinkLabel, WikiLinkID)
 parseWikiLinkUrl mtitle s = do
   guard $ not $ ":" `T.isInfixOf` s
   guard $ not $ "/" `T.isInfixOf` s
-  let linkLabel = fromMaybe WikiLinkLabel_Unlabelled $ readMaybe . toString =<< mtitle
+  let linkLabel = parseWikiLinkLabel mtitle
       linkId = Tagged s
   pure (linkLabel, linkId)
+
+data WikiLinkLabel
+  = WikiLinkLabel_Unlabelled
+  | -- | [[Foo]]#
+    WikiLinkLabel_Branch
+  | -- | #[[Foo]]
+    WikiLinkLabel_Tag
+  deriving (Eq, Ord)
+
+-- Show value is stored in the `title` attribute of the <a> element (of Pandoc
+-- AST), and then retrieved later using the Read instance further below. This is
+-- how we store link labels in the Pandoc AST.
+instance Show WikiLinkLabel where
+  show = \case
+    WikiLinkLabel_Unlabelled -> "link:nolbl"
+    WikiLinkLabel_Branch -> "link:branch"
+    WikiLinkLabel_Tag -> "link:tag"
+
+instance Read WikiLinkLabel where
+  readsPrec _ s
+    | s == show WikiLinkLabel_Unlabelled =
+      [(WikiLinkLabel_Unlabelled, "")]
+    | s == show WikiLinkLabel_Branch =
+      [(WikiLinkLabel_Branch, "")]
+    | s == show WikiLinkLabel_Tag =
+      [(WikiLinkLabel_Tag, "")]
+    | otherwise = []
+
+renderWikiLinkLabel :: WikiLinkLabel -> Text
+renderWikiLinkLabel = \case
+  WikiLinkLabel_Unlabelled -> ""
+  x -> show x
+
+-- | Determine label from the optional "title" attribute
+parseWikiLinkLabel :: Maybe Text -> WikiLinkLabel
+parseWikiLinkLabel mtitle =
+  fromMaybe WikiLinkLabel_Unlabelled $
+    readMaybe . toString =<< mtitle

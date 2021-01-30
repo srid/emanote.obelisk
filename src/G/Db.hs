@@ -2,9 +2,10 @@ module G.Db where
 
 import Control.Concurrent.STM (TChan, newTChanIO, readTChan, writeTChan)
 import Data.Conflict (Conflict)
-import Data.Default
-import G.Graph (Graph, PatchGraph)
+import Data.Default (Default (..))
+import G.Graph (Graph)
 import qualified G.Graph as Graph
+import G.Graph.Patch (PatchGraph (..))
 import qualified G.Markdown as M
 import qualified G.Markdown.WikiLink as M
 import Reflex (Patch (apply), PatchMap)
@@ -53,7 +54,7 @@ mkZkPatch p =
   let _zkPatch_zettels =
         (fmap . fmap . fmap . fmap) snd p
       _zkPatch_graph =
-        Graph.PatchGraph . unPatchMap $
+        PatchGraph . unPatchMap $
           p
             <&> concat . \case
               Right (_, Right (ids, _)) -> [first one <$> ids]

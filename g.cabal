@@ -20,6 +20,7 @@ executable g
     G.Db
     G.FileSystem
     G.Graph
+    G.Graph.Patch
     G.Markdown
     G.Markdown.WikiLink
     G.WebServer
@@ -48,13 +49,13 @@ executable g
     , reflex-dom-pandoc
     , reflex-fsnotify
     , relude
+    , scotty
     , shower
     , stm
     , tagged
     , text
     , time
     , with-utf8
-    , scotty
 
   default-extensions:
     DeriveGeneric
@@ -62,11 +63,11 @@ executable g
     LambdaCase
     MultiWayIf
     OverloadedStrings
+    RecordWildCards
     ScopedTypeVariables
     TupleSections
     TypeApplications
     ViewPatterns
-    RecordWildCards
 
   ghc-options:
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns
