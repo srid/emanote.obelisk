@@ -40,18 +40,25 @@ article > h1 {
   text-align: center;
   text-decoration: underline wavy #c418511a;
 }
-[title^="link:"] {
+
+a[title^="link:"] {
   font-weight: bolder;
   text-decoration: underline wavy #c418511a;
+  color: #c41851ea !important;
 }
-[title="link:branch"]::after {
+a[title^="link:"]:hover {
+  text-decoration-color: black;
+}
+a[title="link:branch"]::after {
   content: "#";
   color: gray;
   opacity: 0.5;
 }
-
-[title="link:tag"]::before {
+a[title="link:tag"]::before {
   content: "#";
   color: gray;
   opacity: 0.5;
+}
+a[title^="link:"], a[title^="link:"]:visited, a[title^="link:"]:hover, a[title^="link:"]:active  {
+  color: inherit;
 }
