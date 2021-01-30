@@ -31,6 +31,8 @@ footer {
   color: gray;
   border-top: 1px dotted; 
   margin-top: 2em;
+  text-align: center;
+  padding-top: 1em;
 }
 
 /* Style WikiLinkIDs uniquely, across semantic elements (title & likns) */
