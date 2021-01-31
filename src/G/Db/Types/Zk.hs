@@ -8,6 +8,7 @@ import G.Graph (Graph)
 import qualified G.Graph as Graph
 import qualified G.Markdown as M
 import qualified G.Markdown.WikiLink as M
+import qualified Text.Mustache.Types as Mustache
 import Text.Pandoc.Definition (Pandoc)
 
 type Zettel =
@@ -25,8 +26,9 @@ type Zettel =
 
 data Zk = Zk
   { _zk_zettels :: Map M.WikiLinkID Zettel,
-    _zk_graph :: Graph
+    _zk_graph :: Graph,
+    _zk_htmlTemplate :: Map FilePath (Either Text Mustache.Template)
   }
 
 instance Default Zk where
-  def = Zk mempty Graph.empty
+  def = Zk mempty Graph.empty mempty

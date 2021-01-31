@@ -1,2 +1,3 @@
 - Just start writing your `.md` files
-- Style your website by writing `style.css` (`g` produces HTML using semantic tags)
+- Write `index.html`, as your raw HTML template (`g` uses this automatically)
+  - Style your website by writing a `style.css` (`g` serves input directory automatically)

@@ -9,7 +9,6 @@ import G.Markdown.WikiLink (WikiLinkID)
 import qualified Network.Wai.Middleware.Static as MStatic
 import Reflex.Dom.Builder.Static (renderStatic)
 import qualified Reflex.Dom.Pandoc as PR
-import System.FilePath ((</>))
 import Text.Mustache (ToMustache, object, (~>))
 import qualified Text.Mustache as Mustache
 import Web.Scotty (html, param, scotty)
@@ -34,11 +33,10 @@ run inputDir Db {..} = do
             Left err -> Scotty.text $ "Conflict: " <> show err
             Right (_fp, Left err) -> Scotty.text $ "Parse: " <> show err
             Right (_fp, Right doc) -> do
-              -- TODO: Move this to Zk{..}, and re compile only when the template changes (Incremental)!
-              tmplBody <- liftIO $ readFileText $ inputDir </> "index.html"
-              case Mustache.compileTemplate "index.html" tmplBody of
-                Left err -> Scotty.text $ "oopsy template: " <> show err
-                Right tmpl -> do
+              case Map.lookup "index.html" _zk_htmlTemplate of
+                Nothing -> Scotty.text "Write your index.html, dude"
+                Just (Left err) -> Scotty.text $ "oopsy template: " <> show err
+                Just (Right tmpl) -> do
                   mdHtml <- fmap snd $ liftIO $ renderStatic $ PR.elPandoc PR.defaultConfig doc
                   let s = Mustache.substitute tmpl (Page wikiLinkID mdHtml)
                   html $ toLazy s

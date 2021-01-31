@@ -17,32 +17,47 @@ import qualified G.Markdown.WikiLink as M
 import Reflex
 import Reflex.Host.Headless (MonadHeadlessApp)
 import System.FilePath (dropExtension, takeExtension, takeFileName)
+import qualified Text.Mustache as Mustache
 import Text.Pandoc.Definition (Pandoc)
 import qualified Text.Pandoc.LinkContext as LC
 
 run :: MonadHeadlessApp t m => FilePath -> Db.Db Zk.ZkPatch -> m (Event t ())
 run inputDir db = do
   input <- directoryTreeIncremental [".*/**"] inputDir
-  let output =
+  let mdOut =
         input
-          & pipeFilterExt ".md"
+          & pipeFilterFilename (\fn -> takeExtension fn == ".md")
           & pipeFlattenFsTree (Tagged . toText . dropExtension . takeFileName)
           & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
           & pipeExtractLinks
-  Db.incrementalToDb db Zk.mkZkPatch output
+      htmlOut =
+        input
+          & pipeFilterFilename (== "index.html")
+          & pipeLoadTemplates
+  Db.incrementalToDb db Zk.mkZkPatch1 Zk.mkZkPatch2 mdOut htmlOut
   pure never
 
-pipeFilterExt ::
+pipeFilterFilename ::
   Reflex t =>
-  String ->
+  (FilePath -> Bool) ->
   Incremental t (PatchMap FilePath v) ->
   Incremental t (PatchMap FilePath v)
-pipeFilterExt ext =
+pipeFilterFilename selectFile =
   let f :: FilePath -> v -> Maybe v
-      f = \fs x -> guard (takeExtension fs == ext) >> pure x
+      f = \fs x -> guard (selectFile fs) >> pure x
    in unsafeMapIncremental
         (Map.mapMaybeWithKey f)
         (PatchMap . Map.mapMaybeWithKey f . unPatchMap)
+
+pipeLoadTemplates ::
+  Reflex t =>
+  Incremental t (PatchMap FilePath ByteString) ->
+  Incremental t (PatchMap FilePath (Either Text Mustache.Template))
+pipeLoadTemplates =
+  let f n = first (show @Text) . Mustache.compileTemplate n . decodeUtf8 @Text @ByteString
+   in unsafeMapIncremental
+        (Map.mapWithKey f)
+        (PatchMap . Map.mapWithKey (fmap . f) . unPatchMap)
 
 pipeParseMarkdown ::
   (Reflex t, Functor f, Functor g, M.MarkdownSyntaxSpec m il bl) =>
