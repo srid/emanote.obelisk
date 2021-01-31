@@ -1,11 +1,13 @@
 module Emanote.Graph where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
-import Emanote.Markdown.WikiLink (WikiLinkContext, WikiLinkID, WikiLinkLabel)
+import Emanote.Markdown.WikiLink (Directed (..), WikiLinkContext, WikiLinkID, WikiLinkLabel)
 
 type V = WikiLinkID
 
-type E = [(WikiLinkLabel, WikiLinkContext)]
+type E' = (WikiLinkLabel, WikiLinkContext)
+
+type E = [E']
 
 newtype Graph = Graph {unGraph :: AM.AdjacencyMap E V}
   deriving (Eq, Show)
@@ -24,3 +26,15 @@ preSetWithLabel v g =
   let es = toList $ AM.preSet v g
    in es <&> \v0 ->
         (,v0) $ AM.edgeLabel v0 v g
+
+connectionsOf :: (Directed WikiLinkLabel -> Bool) -> V -> Graph -> [(E', V)]
+connectionsOf f v graph =
+  go UserDefinedDirection postSetWithLabel
+    <> go ReverseDirection preSetWithLabel
+  where
+    go dir pSet =
+      concat $
+        flip fmap (pSet v (unGraph graph)) $ \(es, t) ->
+          flip mapMaybe es $ \(lbl, ctx) -> do
+            guard $ f (dir lbl)
+            pure ((lbl, ctx), t)

@@ -10,13 +10,26 @@
 </head>
 
 <body>
-    <div id="container">
-        <main>
+    <div id="container" class="wrapper">
+        <main class="content">
             <article>
                 <h1>{{wikiLinkID}}</h1>
                 {{{mdHtml}}}
             </article>
-            <nav class="backlinks">
+        </main>
+        <nav class="ctxlinks left">
+            <div class="uplinks">
+                <h2>Uplinks</h2>
+                {{#uplinks}}
+                <li>
+                    <header><a href="{{id}}" title="{{label}}">{{id}}</a></header>
+                    <div class="ctx">
+                        {{{ctxHtml}}}
+                    </div>
+                </li>
+                {{/uplinks}}
+            </div>
+            <div class="backlinks">
                 <h2>Backlinks</h2>
                 {{#backlinks}}
                 <li>
@@ -26,8 +39,22 @@
                     </div>
                 </li>
                 {{/backlinks}}
-            </nav>
-        </main>
+            </div>
+        </nav>
+        <nav class="ctxlinks right">
+            <div class="downlinks">
+                <h2>Branches</h2>
+                {{#downlinks}}
+                <li>
+                    <header><a href="{{id}}" title="{{label}}">{{id}}</a></header>
+                    <div class="ctx">
+                        {{{ctxHtml}}}
+                    </div>
+                </li>
+                {{/downlinks}}
+            </div>
+            <h2>Footnotes</h2>
+        </nav>
         <footer>
             <a href="/">root</a>
             |

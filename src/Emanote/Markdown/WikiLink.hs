@@ -1,12 +1,17 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GADTs #-}
 
 module Emanote.Markdown.WikiLink
   ( wikiLinkSpec,
     WikiLinkID,
-    WikiLinkLabel,
+    WikiLinkLabel (..),
     WikiLinkContext,
     parseWikiLinkUrl,
+    Directed (..),
+    isParent,
+    isBranch,
+    isReverse,
   )
 where
 
@@ -111,3 +116,27 @@ parseWikiLinkLabel :: Maybe Text -> WikiLinkLabel
 parseWikiLinkLabel mtitle =
   fromMaybe WikiLinkLabel_Unlabelled $
     readMaybe . toString =<< mtitle
+
+data Directed a
+  = -- | In the same direction as the user linked to.
+    UserDefinedDirection a
+  | -- | In the reverse direction to the one user linked to.
+    ReverseDirection a
+  deriving (Eq, Ord, Show, Functor)
+
+isReverse :: Directed a -> Bool
+isReverse = \case
+  ReverseDirection _ -> True
+  _ -> False
+
+isParent :: Directed WikiLinkLabel -> Bool
+isParent = \case
+  UserDefinedDirection WikiLinkLabel_Tag -> True
+  ReverseDirection WikiLinkLabel_Branch -> True
+  _ -> False
+
+isBranch :: Directed WikiLinkLabel -> Bool
+isBranch = \case
+  UserDefinedDirection WikiLinkLabel_Branch -> True
+  ReverseDirection WikiLinkLabel_Tag -> True
+  _ -> False
