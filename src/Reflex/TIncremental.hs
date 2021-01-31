@@ -1,11 +1,11 @@
 module Reflex.TIncremental
   ( TIncremental,
-    forkIncremental,
+    mirrorIncremental,
+    runTIncremental,
     readValue,
   )
 where
 
-import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (TChan)
 import qualified Control.Concurrent.STM as STM
 import Reflex
@@ -20,16 +20,6 @@ data TIncremental p = TIncremental
 readValue :: (MonadIO m) => TIncremental p -> m (PatchTarget p)
 readValue TIncremental {..} =
   liftIO $ atomically $ STM.readTVar _tincremental_value
-
--- | Fork an Incremental to the outside world.
-forkIncremental ::
-  (Patch p, MonadIO m, MonadIO (Performable m), PerformEvent t m, MonadSample t m) =>
-  Incremental t p ->
-  m (TIncremental p)
-forkIncremental inc = do
-  incT <- mirrorIncremental inc
-  void $ liftIO $ forkIO $ runTIncremental incT
-  pure incT
 
 runTIncremental :: Patch p => TIncremental p -> IO ()
 runTIncremental TIncremental {..} = do

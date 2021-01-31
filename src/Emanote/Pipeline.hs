@@ -13,7 +13,7 @@ import qualified Emanote.Graph as G
 import qualified Emanote.Graph.Patch as G
 import qualified Emanote.Markdown as M
 import qualified Emanote.Markdown.WikiLink as M
-import Emanote.Zk
+import Emanote.Zk (Zk (Zk))
 import Reflex
 import Reflex.Host.Headless (MonadHeadlessApp)
 import qualified Reflex.TIncremental as TInc
@@ -38,12 +38,10 @@ run inputDir = do
         input
           & pipeFilterFilename (== "index.html")
           & pipeLoadTemplates
-  -- TODO: Avoid unhinged forkIO here and elsewhere; otherwise, ghcid is not
-  -- cleanly shutting down the web server thread (started in Main).
   Zk
-    <$> TInc.forkIncremental pandocOut
-    <*> TInc.forkIncremental graphOut
-    <*> TInc.forkIncremental htmlOut
+    <$> TInc.mirrorIncremental pandocOut
+    <*> TInc.mirrorIncremental graphOut
+    <*> TInc.mirrorIncremental htmlOut
 
 pipeFilterFilename ::
   Reflex t =>
