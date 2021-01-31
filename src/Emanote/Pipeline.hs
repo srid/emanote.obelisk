@@ -25,6 +25,7 @@ import qualified Text.Pandoc.LinkContext as LC
 run :: MonadHeadlessApp t m => FilePath -> m Zk
 run inputDir = do
   input <- directoryTreeIncremental [".*/**"] inputDir
+  logInputChanges input
   let pandocOut =
         input
           & pipeFilterFilename (\fn -> takeExtension fn == ".md")
@@ -42,6 +43,15 @@ run inputDir = do
     <$> TInc.mirrorIncremental pandocOut
     <*> TInc.mirrorIncremental graphOut
     <*> TInc.mirrorIncremental htmlOut
+
+logInputChanges :: (PerformEvent t m, MonadIO (Performable m)) => Incremental t (PatchMap FilePath a) -> m ()
+logInputChanges input =
+  performEvent_ $
+    ffor (updatedIncremental input) $ \(void -> m) ->
+      forM_ (Map.toList $ unPatchMap m) $ \(fp, mval) -> do
+        let mark = maybe "-" (const "*") mval
+        liftIO $ putStr $ mark <> " "
+        liftIO $ putStrLn fp
 
 pipeFilterFilename ::
   Reflex t =>

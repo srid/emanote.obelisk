@@ -43,7 +43,6 @@ mirrorIncremental ::
   m (TIncremental p)
 mirrorIncremental inc = do
   x0 <- sample $ currentIncremental inc
-  -- TODO: Should we log here or elsewhere?
   _tincremental_value <- liftIO $ STM.newTVarIO x0
   _tincremental_patches <- liftIO STM.newTChanIO
   let xE = updatedIncremental inc
