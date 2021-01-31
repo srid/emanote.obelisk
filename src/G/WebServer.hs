@@ -2,6 +2,7 @@ module G.WebServer (run) where
 
 import qualified Data.Map.Strict as Map
 import Data.Tagged (Tagged (Tagged), untag)
+import qualified Data.Text as T
 import G.Db (Db (..))
 import G.Db.Types.Zk (Zk (..))
 import G.Db.Types.Zk.Patch (ZkPatch)
@@ -22,7 +23,15 @@ run inputDir Db {..} = do
   scotty 3000 $ do
     Scotty.middleware $ MStatic.staticPolicy (MStatic.addBase inputDir)
     Scotty.get "/" $ do
-      html "Start here: <a href=/index>index</a>"
+      Zk {..} <- liftIO $ readTVarIO _db_data
+      let wIds = Map.keys _zk_zettels
+      -- TODO: Template? Needs includes first, I think.
+      -- Also, need to support search here. So considerate that too when templatifying.
+      html $
+        toLazy $
+          T.unwords $
+            wIds <&> \(untag -> x) ->
+              "<li><a href=\"" <> x <> "\">" <> x <> "</a></li>"
     Scotty.get "/:wikiLinkID" $ do
       wikiLinkID <- Tagged <$> param "wikiLinkID"
       Zk {..} <- liftIO $ readTVarIO _db_data
