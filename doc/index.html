@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<!-- This is a mustache template. See https://mustache.github.io/mustache.5.html -->
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<meta content="width=device-width, initial-scale=1" name="viewport">
+
+<head>
+    <title>{{wikiLinkID}}</title>
+    <link href="/style.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="container">
+        <main>
+            <header>
+                <h1>G docs</h1>
+            </header>
+            <article>
+                <h1>{{wikiLinkID}}</h1>
+                {{{mdHtml}}}
+            </article>
+            <nav class="backlinks">
+                <h2>Backlinks</h2>
+                <p>TODO!</p>
+            </nav>
+        </main>
+        <footer>github.com/srid/g</footer>
+    </div>
+</body>
+
+</html>

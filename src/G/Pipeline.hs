@@ -23,33 +23,14 @@ import qualified Text.Pandoc.LinkContext as LC
 run :: MonadHeadlessApp t m => FilePath -> Db.Db Zk.ZkPatch -> m (Event t ())
 run inputDir db = do
   input <- directoryTreeIncremental [".*/**"] inputDir
-  let output = runPipe input
+  let output =
+        input
+          & pipeFilterExt ".md"
+          & pipeFlattenFsTree (Tagged . toText . dropExtension . takeFileName)
+          & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
+          & pipeExtractLinks
   Db.incrementalToDb db Zk.mkZkPatch output
   pure never
-
--- | Pipe the filesystem three through until determining the "final" data.
-runPipe ::
-  Reflex t =>
-  Incremental t (PatchMap FilePath ByteString) ->
-  Incremental
-    t
-    ( PatchMap
-        M.WikiLinkID
-        ( Either
-            (Conflict FilePath ByteString)
-            ( FilePath,
-              Either
-                M.ParserError
-                ([((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)], Pandoc)
-            )
-        )
-    )
-runPipe x =
-  x
-    & pipeFilterExt ".md"
-    & pipeFlattenFsTree (Tagged . toText . dropExtension . takeFileName)
-    & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
-    & pipeExtractLinks
 
 pipeFilterExt ::
   Reflex t =>

@@ -7,9 +7,11 @@ import G.Db.Types.Zk (Zk (..))
 import G.Db.Types.Zk.Patch (ZkPatch)
 import G.Markdown.WikiLink (WikiLinkID)
 import qualified Network.Wai.Middleware.Static as MStatic
-import Reflex.Dom.Core
+import Reflex.Dom.Builder.Static (renderStatic)
 import qualified Reflex.Dom.Pandoc as PR
-import Text.Pandoc.Definition (Pandoc)
+import System.FilePath ((</>))
+import Text.Mustache (ToMustache, object, (~>))
+import qualified Text.Mustache as Mustache
 import Web.Scotty (html, param, scotty)
 import qualified Web.Scotty as Scotty
 
@@ -24,7 +26,7 @@ run inputDir Db {..} = do
       html "Start here: <a href=/index>index</a>"
     Scotty.get "/:wikiLinkID" $ do
       wikiLinkID <- Tagged <$> param "wikiLinkID"
-      zk@Zk {..} <- liftIO $ readTVarIO _db_data
+      Zk {..} <- liftIO $ readTVarIO _db_data
       case Map.lookup wikiLinkID _zk_zettels of
         Nothing -> Scotty.text "404"
         Just v ->
@@ -32,30 +34,23 @@ run inputDir Db {..} = do
             Left err -> Scotty.text $ "Conflict: " <> show err
             Right (_fp, Left err) -> Scotty.text $ "Parse: " <> show err
             Right (_fp, Right doc) -> do
-              s <-
-                fmap snd $
-                  liftIO $
-                    renderStatic $ vertexWidget zk wikiLinkID doc
-              html $ decodeUtf8 s
+              -- TODO: Move this to Zk{..}, and re compile only when the template changes (Incremental)!
+              tmplBody <- liftIO $ readFileText $ inputDir </> "index.html"
+              case Mustache.compileTemplate "index.html" tmplBody of
+                Left err -> Scotty.text $ "oopsy template: " <> show err
+                Right tmpl -> do
+                  mdHtml <- fmap snd $ liftIO $ renderStatic $ PR.elPandoc PR.defaultConfig doc
+                  let s = Mustache.substitute tmpl (Page wikiLinkID mdHtml)
+                  html $ toLazy s
 
-vertexWidget :: (PR.PandocBuilder t m) => Zk -> WikiLinkID -> Pandoc -> m ()
-vertexWidget _zk wlId doc = do
-  -- NOTE: Aim to use semantic tags, and let the user style it via custom CSS (not Clay)
-  -- TODO: Read https://css-tricks.com/how-to-section-your-html/
-  el "html" $ do
-    el "head" $ do
-      el "title" $ text $ untag wlId
-      elAttr "link" ("rel" =: "stylesheet" <> "href" =: "/style.css") blank
-    el "body" $ do
-      elAttr "div" ("id" =: "container") $ do
-        el "main" $ do
-          el "header" $ el "h1" $ text "G"
-          el "article" $ do
-            el "h1" $ text $ untag wlId
-            PR.elPandoc PR.defaultConfig doc
-          elClass "nav" "backlinks" $ do
-            el "h2" $ text "Backlinks"
-            text "TODO: backlinks"
-        el "footer" $ do
-          -- el "pre" $ text $ toText $ Shower.shower _zk_graph
-          text "github.com/srid/g"
+data Page = Page
+  { _page_wikiLinkID :: WikiLinkID,
+    _page_mdHtml :: ByteString
+  }
+
+instance ToMustache Page where
+  toMustache Page {..} =
+    object
+      [ "wikiLinkID" ~> untag _page_wikiLinkID,
+        "mdHtml" ~> decodeUtf8 @Text _page_mdHtml
+      ]

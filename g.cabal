@@ -43,6 +43,7 @@ executable g
     , filepattern
     , fsnotify
     , megaparsec
+    , mustache
     , optparse-applicative
     , pandoc-link-context
     , pandoc-types
