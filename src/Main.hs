@@ -3,9 +3,9 @@
 module Main where
 
 import Control.Concurrent.Async (race_)
-import qualified G.Db as Db
-import qualified G.Pipeline as Pipeline
-import qualified G.WebServer as WS
+import qualified Emanote.Db as Db
+import qualified Emanote.Pipeline as Pipeline
+import qualified Emanote.WebServer as WS
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
 import Main.Utf8 (withUtf8)
 import Options.Applicative

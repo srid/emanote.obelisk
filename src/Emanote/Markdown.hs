@@ -2,7 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 
-module G.Markdown
+module Emanote.Markdown
   ( parseMarkdown,
     ParserError,
     MarkdownSyntaxSpec,

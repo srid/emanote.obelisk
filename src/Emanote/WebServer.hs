@@ -1,12 +1,12 @@
-module G.WebServer (run) where
+module Emanote.WebServer (run) where
 
 import qualified Data.Map.Strict as Map
 import Data.Tagged (Tagged (Tagged), untag)
 import qualified Data.Text as T
-import G.Db (Db (..))
-import G.Db.Types.Zk (Zk (..))
-import G.Db.Types.Zk.Patch (ZkPatch)
-import G.Markdown.WikiLink (WikiLinkID)
+import Emanote.Db (Db (..))
+import Emanote.Db.Types.Zk (Zk (..))
+import Emanote.Db.Types.Zk.Patch (ZkPatch)
+import Emanote.Markdown.WikiLink (WikiLinkID)
 import qualified Network.Wai.Middleware.Static as MStatic
 import Reflex.Dom.Builder.Static (renderStatic)
 import qualified Reflex.Dom.Pandoc as PR

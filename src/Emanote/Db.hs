@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module G.Db where
+module Emanote.Db where
 
 import Control.Concurrent.STM (TChan, newTChanIO, readTChan, writeTChan)
 import Data.Default (Default (..))

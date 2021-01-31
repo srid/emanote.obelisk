@@ -1,3 +1,3 @@
-- Just start writing your `.md` files
-- Write `index.html`, as your raw HTML template (`g` uses this automatically)
-  - Style your website by writing a `style.css` (`g` serves input directory automatically)
+- Just start writing your `.md` files, and emanote will "emanate" them into a notebook.
+- Define your own HTML, by writing a `index.html` (emanote treats this as a template).
+- All files under input directory (except `index.html`) is statically served.

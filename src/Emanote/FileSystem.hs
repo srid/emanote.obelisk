@@ -1,4 +1,4 @@
-module G.FileSystem (directoryTreeIncremental) where
+module Emanote.FileSystem (directoryTreeIncremental) where
 
 import Control.Monad.Fix (MonadFix)
 import Data.List (nubBy)

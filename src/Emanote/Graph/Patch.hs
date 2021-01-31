@@ -1,10 +1,10 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module G.Graph.Patch where
+module Emanote.Graph.Patch where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
 import qualified Data.Map.Strict as Map
-import G.Graph (E, Graph (Graph), V, postSetWithLabel)
+import Emanote.Graph (E, Graph (Graph), V, postSetWithLabel)
 import Reflex.Patch.Class (Patch (..))
 
 newtype PatchGraph = PatchGraph {unPatchGraph :: Map V (Maybe [(E, V)])}

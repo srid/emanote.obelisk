@@ -1,7 +1,7 @@
-module G.Graph where
+module Emanote.Graph where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
-import G.Markdown.WikiLink (WikiLinkContext, WikiLinkID, WikiLinkLabel)
+import Emanote.Markdown.WikiLink (WikiLinkContext, WikiLinkID, WikiLinkLabel)
 
 type V = WikiLinkID
 

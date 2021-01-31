@@ -1,13 +1,13 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module G.Db.Types.Zk.Patch where
+module Emanote.Db.Types.Zk.Patch where
 
 import Data.Conflict (Conflict)
 import Data.Default
-import G.Db.Types.Zk (Zettel, Zk (..))
-import G.Graph.Patch (PatchGraph (..))
-import qualified G.Markdown as M
-import qualified G.Markdown.WikiLink as M
+import Emanote.Db.Types.Zk (Zettel, Zk (..))
+import Emanote.Graph.Patch (PatchGraph (..))
+import qualified Emanote.Markdown as M
+import qualified Emanote.Markdown.WikiLink as M
 import Reflex (PatchMap (unPatchMap))
 import Reflex.Patch.Class (Patch (..))
 import qualified Text.Mustache.Types as Mustache

@@ -1,13 +1,13 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module G.Db.Types.Zk where
+module Emanote.Db.Types.Zk where
 
 import Data.Conflict (Conflict)
 import Data.Default (Default (..))
-import G.Graph (Graph)
-import qualified G.Graph as Graph
-import qualified G.Markdown as M
-import qualified G.Markdown.WikiLink as M
+import Emanote.Graph (Graph)
+import qualified Emanote.Graph as Graph
+import qualified Emanote.Markdown as M
+import qualified Emanote.Markdown.WikiLink as M
 import qualified Text.Mustache.Types as Mustache
 import Text.Pandoc.Definition (Pandoc)
 

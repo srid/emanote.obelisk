@@ -1,5 +1,5 @@
 
-## What's `g`?
+## What's emanote?
 
 Srid's playground for uninhibitedly exploring the problem-space of [Unix-pipeline](https://en.wikipedia.org/wiki/Pipeline_(Unix))-based transformation of a directory of Markdown files (or anything!) to sophisticated structures like directed graphs, all the while supporting end-to-end incremental updates (as your files change, so will the graph---instantly).
 

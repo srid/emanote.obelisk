@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 
-module G.Markdown.WikiLink
+module Emanote.Markdown.WikiLink
   ( wikiLinkSpec,
     WikiLinkID,
     WikiLinkLabel,

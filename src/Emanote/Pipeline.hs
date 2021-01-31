@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs #-}
 
-module G.Pipeline (run) where
+module Emanote.Pipeline (run) where
 
 import qualified Commonmark.Syntax as CM
 import Data.Conflict (Conflict (..))
@@ -8,12 +8,12 @@ import qualified Data.Conflict as Conflict
 import qualified Data.Conflict.Patch as Conflict
 import qualified Data.Map as Map
 import Data.Tagged (Tagged (..))
-import qualified G.Db as Db
-import qualified G.Db.Reflex as Db
-import qualified G.Db.Types.Zk.Patch as Zk
-import G.FileSystem (directoryTreeIncremental)
-import qualified G.Markdown as M
-import qualified G.Markdown.WikiLink as M
+import qualified Emanote.Db as Db
+import qualified Emanote.Db.Reflex as Db
+import qualified Emanote.Db.Types.Zk.Patch as Zk
+import Emanote.FileSystem (directoryTreeIncremental)
+import qualified Emanote.Markdown as M
+import qualified Emanote.Markdown.WikiLink as M
 import Reflex
 import Reflex.Host.Headless (MonadHeadlessApp)
 import System.FilePath (dropExtension, takeExtension, takeFileName)

@@ -1,8 +1,8 @@
 {-# LANGUAGE GADTs #-}
 
-module G.Db.Reflex where
+module Emanote.Db.Reflex where
 
-import qualified G.Db as Db
+import qualified Emanote.Db as Db
 import Reflex
 
 -- | Drain the incremental to the given database.

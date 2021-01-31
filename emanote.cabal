@@ -1,13 +1,13 @@
 cabal-version:      3.0
-name:               g
+name:               emanote
 version:            0.1.0.0
 license:            BSD-3-Clause
 license-file:       LICENSE
 author:             Sridhar Ratnakumar
 maintainer:         srid@srid.ca
-extra-source-files: CHANGELOG.md
+extra-source-files: CHANGELOEmanote.md
 
-executable g
+executable emanote
   main-is:            Main.hs
   mixins:
     base hiding (Prelude),
@@ -17,17 +17,17 @@ executable g
   other-modules:
     Data.Conflict
     Data.Conflict.Patch
-    G.Db
-    G.Db.Reflex
-    G.Db.Types.Zk
-    G.Db.Types.Zk.Patch
-    G.FileSystem
-    G.Graph
-    G.Graph.Patch
-    G.Markdown
-    G.Markdown.WikiLink
-    G.Pipeline
-    G.WebServer
+    Emanote.Db
+    Emanote.Db.Reflex
+    Emanote.Db.Types.Zk
+    Emanote.Db.Types.Zk.Patch
+    Emanote.FileSystem
+    Emanote.Graph
+    Emanote.Graph.Patch
+    Emanote.Markdown
+    Emanote.Markdown.WikiLink
+    Emanote.Pipeline
+    Emanote.WebServer
 
   build-depends:
     , algebraic-graphs
