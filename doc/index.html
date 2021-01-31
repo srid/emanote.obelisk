@@ -18,13 +18,20 @@
             </article>
             <nav class="backlinks">
                 <h2>Backlinks</h2>
-                <p>TODO!</p>
+                {{#backlinks}}
+                <li>
+                    <header><a href="{{id}}" title="{{label}}">{{id}}</a></header>
+                    <div class="ctx">
+                        {{{ctxHtml}}}
+                    </div>
+                </li>
+                {{/backlinks}}
             </nav>
         </main>
         <footer>
             <a href="/">root</a>
             |
-            <tt>github.com/srid/g</tt>
+            <tt>github.com/srid/emanote</tt>
         </footer>
     </div>
 </body>

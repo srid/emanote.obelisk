@@ -13,12 +13,6 @@ h1, h2, h3, h4, h5, h6 {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
-header {
-  background-color: #c418511a;
-  border-radius: 10px;
-  text-align: center;
-}
-
 nav {
   font-size: 0.95em;
   background-color: rgba(128, 128, 128, 0.075);
@@ -80,4 +74,18 @@ pre {
 /* TODO: get rid of this, after switching to commonmark renderer */
 div.pandoc div.checkbox {
   display: inline;
+}
+
+.backlinks header {
+  display: inline;
+}
+
+.backlinks li {
+  padding-bottom: 1em;
+}
+.backlinks .ctx {
+  padding-top: 0.5em;
+  padding-left: 1.5em;
+  zoom: 85%;
+  opacity: 0.8;
 }
