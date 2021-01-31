@@ -8,34 +8,50 @@ import qualified Data.Conflict as Conflict
 import qualified Data.Conflict.Patch as Conflict
 import qualified Data.Map as Map
 import Data.Tagged (Tagged (..))
-import qualified Emanote.Db as Db
-import qualified Emanote.Db.Reflex as Db
-import qualified Emanote.Db.Types.Zk.Patch as Zk
 import Emanote.FileSystem (directoryTreeIncremental)
+import qualified Emanote.Graph as G
+import qualified Emanote.Graph.Patch as G
 import qualified Emanote.Markdown as M
 import qualified Emanote.Markdown.WikiLink as M
+import Emanote.Zk (Zk (Zk))
 import Reflex
 import Reflex.Host.Headless (MonadHeadlessApp)
+import qualified Reflex.TIncremental as TInc
 import System.FilePath (dropExtension, takeExtension, takeFileName)
 import qualified Text.Mustache as Mustache
 import Text.Pandoc.Definition (Pandoc)
 import qualified Text.Pandoc.LinkContext as LC
 
-run :: MonadHeadlessApp t m => FilePath -> Db.Db Zk.ZkPatch -> m (Event t ())
-run inputDir db = do
+run :: MonadHeadlessApp t m => FilePath -> m Zk
+run inputDir = do
   input <- directoryTreeIncremental [".*/**"] inputDir
-  let mdOut =
+  logInputChanges input
+  let pandocOut =
         input
           & pipeFilterFilename (\fn -> takeExtension fn == ".md")
           & pipeFlattenFsTree (Tagged . toText . dropExtension . takeFileName)
           & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
+      graphOut =
+        pandocOut
           & pipeExtractLinks
+          & pipeGraph
       htmlOut =
         input
           & pipeFilterFilename (== "index.html")
           & pipeLoadTemplates
-  Db.incrementalToDb db Zk.mkZkPatch1 Zk.mkZkPatch2 mdOut htmlOut
-  pure never
+  Zk
+    <$> TInc.mirrorIncremental pandocOut
+    <*> TInc.mirrorIncremental graphOut
+    <*> TInc.mirrorIncremental htmlOut
+
+logInputChanges :: (PerformEvent t m, MonadIO (Performable m)) => Incremental t (PatchMap FilePath a) -> m ()
+logInputChanges input =
+  performEvent_ $
+    ffor (updatedIncremental input) $ \(void -> m) ->
+      forM_ (Map.toList $ unPatchMap m) $ \(fp, mval) -> do
+        let mark = maybe "-" (const "*") mval
+        liftIO $ putStr $ mark <> " "
+        liftIO $ putStrLn fp
 
 pipeFilterFilename ::
   Reflex t =>
@@ -102,6 +118,25 @@ pipeExtractLinks = do
               `fmapMaybe` Map.toList links,
             doc
           )
+
+pipeGraph ::
+  forall t f g h.
+  (Reflex t, Functor f, Functor g, Functor h, Foldable f, Foldable g, Foldable h) =>
+  Incremental t (PatchMap M.WikiLinkID (f (g (h ([((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)], Pandoc))))) ->
+  Incremental t G.PatchGraph
+pipeGraph = do
+  unsafeMapIncremental
+    (fromMaybe G.empty . flip apply G.empty . f . PatchMap . fmap Just)
+    f
+  where
+    f ::
+      PatchMap M.WikiLinkID (f (g (h ([((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)], Pandoc)))) ->
+      G.PatchGraph
+    f p =
+      G.PatchGraph . unPatchMap $
+        ffor p $
+          (concatMap . concatMap . concatMap) $ \(links, _doc) ->
+            first one <$> links
 
 -- | Like `unsafeMapIncremental` but the patch function also takes the old
 -- target.
