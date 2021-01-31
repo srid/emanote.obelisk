@@ -30,7 +30,8 @@ runTIncremental TIncremental {..} = do
       whenJust (apply p x) $ \x' ->
         STM.writeTVar _tincremental_value x'
 
--- | Mirror the Incremental outside of the Reflex network. Use `runTIncremental` to effectuate the mirror.
+-- | Mirror the Incremental outside of the Reflex network. Use `runTIncremental`
+-- to effectuate the mirror.
 mirrorIncremental ::
   ( Reflex t,
     Patch p,
@@ -48,6 +49,5 @@ mirrorIncremental inc = do
   let xE = updatedIncremental inc
   performEvent_ $
     ffor xE $ \m -> do
-      -- TODO: Don't write if empty
       atomically $ STM.writeTChan _tincremental_patches m
   pure TIncremental {..}

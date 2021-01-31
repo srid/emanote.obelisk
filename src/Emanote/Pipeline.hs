@@ -119,7 +119,6 @@ pipeExtractLinks = do
             doc
           )
 
--- TODO: refactor
 pipeGraph ::
   forall t f g h.
   (Reflex t, Functor f, Functor g, Functor h, Foldable f, Foldable g, Foldable h) =>
@@ -127,10 +126,7 @@ pipeGraph ::
   Incremental t G.PatchGraph
 pipeGraph = do
   unsafeMapIncremental
-    ( \t ->
-        let p0 = f $ PatchMap $ Just <$> t
-         in fromMaybe G.empty $ apply p0 G.empty
-    )
+    (fromMaybe G.empty . flip apply G.empty . f . PatchMap . fmap Just)
     f
   where
     f ::
@@ -138,8 +134,9 @@ pipeGraph = do
       G.PatchGraph
     f p =
       G.PatchGraph . unPatchMap $
-        ffor p $ \v -> flip (concatMap . concatMap . concatMap) v $ \(ids, _) ->
-          first one <$> ids
+        ffor p $
+          (concatMap . concatMap . concatMap) $ \(links, _doc) ->
+            first one <$> links
 
 -- | Like `unsafeMapIncremental` but the patch function also takes the old
 -- target.
