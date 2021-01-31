@@ -2,13 +2,13 @@
 
 module Main where
 
-import Control.Concurrent.Async (race_)
-import qualified Emanote.Db as Db
+import Control.Concurrent (forkIO)
 import qualified Emanote.Pipeline as Pipeline
 import qualified Emanote.WebServer as WS
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
 import Main.Utf8 (withUtf8)
 import Options.Applicative
+import Reflex (Reflex (never))
 import Reflex.Host.Headless (runHeadlessApp)
 import System.FilePath (addTrailingPathSeparator)
 
@@ -24,10 +24,10 @@ main = do
   hSetBuffering stderr LineBuffering
   withUtf8 $ do
     inputDir <- execParser $ info (cliParser <**> helper) fullDesc
-    db <- Db.newDb
-    race_
-      (runHeadlessApp $ Pipeline.run inputDir db)
-      ( race_
-          (WS.run inputDir db)
-          (Db.run db)
-      )
+    runHeadlessApp $ do
+      zk <- Pipeline.run inputDir
+      void $
+        liftIO $
+          forkIO $
+            WS.run inputDir zk
+      pure never

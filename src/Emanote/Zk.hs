@@ -1,13 +1,11 @@
-{-# LANGUAGE TypeFamilies #-}
-
-module Emanote.Db.Types.Zk where
+module Emanote.Zk where
 
 import Data.Conflict (Conflict)
-import Data.Default (Default (..))
-import Emanote.Graph (Graph)
-import qualified Emanote.Graph as Graph
+import Emanote.Graph.Patch (PatchGraph)
 import qualified Emanote.Markdown as M
 import qualified Emanote.Markdown.WikiLink as M
+import Reflex (PatchMap)
+import Reflex.TIncremental (TIncremental)
 import qualified Text.Mustache.Types as Mustache
 import Text.Pandoc.Definition (Pandoc)
 
@@ -25,10 +23,7 @@ type Zettel =
     )
 
 data Zk = Zk
-  { _zk_zettels :: Map M.WikiLinkID Zettel,
-    _zk_graph :: Graph,
-    _zk_htmlTemplate :: Map FilePath (Either Text Mustache.Template)
+  { _zk_zettels :: TIncremental (PatchMap M.WikiLinkID Zettel),
+    _zk_graph :: TIncremental PatchGraph,
+    _zk_htmlTemplate :: TIncremental (PatchMap FilePath (Either Text Mustache.Template))
   }
-
-instance Default Zk where
-  def = Zk mempty Graph.empty mempty

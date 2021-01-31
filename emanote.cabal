@@ -17,10 +17,6 @@ executable emanote
   other-modules:
     Data.Conflict
     Data.Conflict.Patch
-    Emanote.Db
-    Emanote.Db.Reflex
-    Emanote.Db.Types.Zk
-    Emanote.Db.Types.Zk.Patch
     Emanote.FileSystem
     Emanote.Graph
     Emanote.Graph.Patch
@@ -28,6 +24,8 @@ executable emanote
     Emanote.Markdown.WikiLink
     Emanote.Pipeline
     Emanote.WebServer
+    Emanote.Zk
+    Reflex.TIncremental
 
   build-depends:
     , algebraic-graphs
