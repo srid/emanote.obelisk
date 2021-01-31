@@ -23,16 +23,12 @@ readValue TIncremental {..} =
 
 runTIncremental :: Patch p => TIncremental p -> IO ()
 runTIncremental TIncremental {..} = do
-  go
-  where
-    go = do
-      p <- atomically (STM.readTChan _tincremental_patches)
-      atomically $ do
-        x <- STM.readTVar _tincremental_value
-        case apply p x of
-          Nothing -> pure ()
-          Just x' -> STM.writeTVar _tincremental_value x'
-      go
+  forever $
+    atomically $ do
+      p <- STM.readTChan _tincremental_patches
+      x <- STM.readTVar _tincremental_value
+      whenJust (apply p x) $ \x' ->
+        STM.writeTVar _tincremental_value x'
 
 -- | Mirror the Incremental outside of the Reflex network. Use `runTIncremental` to effectuate the mirror.
 mirrorIncremental ::
