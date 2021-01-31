@@ -24,7 +24,7 @@ run inputDir Db {..} = do
     Scotty.middleware $ MStatic.staticPolicy (MStatic.addBase inputDir)
     Scotty.get "/" $ do
       Zk {..} <- liftIO $ readTVarIO _db_data
-      let wIds = Map.keys _zk_zettels
+      let wIds = reverse $ Map.keys _zk_zettels
       -- TODO: Template? Needs includes first, I think.
       -- Also, need to support search here. So considerate that too when templatifying.
       html $

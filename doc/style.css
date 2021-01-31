@@ -13,7 +13,6 @@ h1, h2, h3, h4, h5, h6 {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
-
 header {
   background-color: #c418511a;
   border-radius: 10px;
@@ -24,6 +23,7 @@ nav {
   font-size: 0.95em;
   background-color: rgba(128, 128, 128, 0.075);
   padding: 1px 0 1em 1em;
+  border: 1px ridge;
 }
 
 footer {
@@ -39,6 +39,7 @@ footer {
 article > h1 { 
   text-align: center;
   text-decoration: underline wavy #c418511a;
+  font-size: 2em;
 }
 
 a[title^="link:"] {
@@ -61,4 +62,22 @@ a[title="link:tag"]::before {
 }
 a[title^="link:"], a[title^="link:"]:visited, a[title^="link:"]:hover, a[title^="link:"]:active  {
   color: inherit;
+}
+
+/* Some pandoc specific stuff 
+- Images should not exceed container width
+- Code blocks shouldn't either
+- GFM checkboxes
+*/
+img { 
+  max-width: 100%;
+}
+pre {
+  overflow: auto;
+  background-color: rgba(128, 128, 128, 0.075);
+  padding: 1em;
+}
+/* TODO: get rid of this, after switching to commonmark renderer */
+div.pandoc div.checkbox {
+  display: inline;
 }
