@@ -102,27 +102,25 @@ pipeFlattenFsTree toKey = do
 
 pipeExtractLinks ::
   forall t f g h.
-  (Reflex t, Functor f, Functor g, Functor h) =>
+  (Reflex t, Functor f, Functor g, Functor h, Foldable f, Foldable g, Foldable h) =>
   Incremental t (PatchMap M.WikiLinkID (f (g (h Pandoc)))) ->
-  Incremental t (PatchMap M.WikiLinkID (f (g (h ([((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)], Pandoc)))))
+  Incremental t (PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)])
 pipeExtractLinks = do
   unsafeMapIncremental
-    (Map.map $ (fmap . fmap . fmap) f)
-    (PatchMap . Map.map ((fmap . fmap . fmap . fmap) f) . unPatchMap)
+    (Map.map $ (concatMap . concatMap . concatMap) f)
+    (PatchMap . Map.map ((fmap . concatMap . concatMap . concatMap) f) . unPatchMap)
   where
     f doc =
       let links = LC.queryLinksWithContext doc
           getTitleAttr =
             Map.lookup "title" . Map.fromList
-       in ( (\(url, (getTitleAttr -> tit, ctx)) -> first (,ctx) <$> M.parseWikiLinkUrl tit url)
-              `fmapMaybe` Map.toList links,
-            doc
-          )
+       in (\(url, (getTitleAttr -> tit, ctx)) -> first (,ctx) <$> M.parseWikiLinkUrl tit url)
+            `fmapMaybe` Map.toList links
 
 pipeGraph ::
-  forall t f g h.
-  (Reflex t, Functor f, Functor g, Functor h, Foldable f, Foldable g, Foldable h) =>
-  Incremental t (PatchMap M.WikiLinkID (f (g (h ([((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)], Pandoc))))) ->
+  forall t.
+  (Reflex t) =>
+  Incremental t (PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)]) ->
   Incremental t G.PatchGraph
 pipeGraph = do
   unsafeMapIncremental
@@ -130,13 +128,11 @@ pipeGraph = do
     f
   where
     f ::
-      PatchMap M.WikiLinkID (f (g (h ([((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)], Pandoc)))) ->
+      PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)] ->
       G.PatchGraph
     f p =
       G.PatchGraph . unPatchMap $
-        ffor p $
-          (concatMap . concatMap . concatMap) $ \(links, _doc) ->
-            first one <$> links
+        fmap (first one) <$> p
 
 -- | Like `unsafeMapIncremental` but the patch function also takes the old
 -- target.

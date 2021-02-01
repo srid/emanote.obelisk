@@ -14,7 +14,7 @@ import Emanote.Markdown.WikiLink
 import qualified Emanote.Markdown.WikiLink as W
 import Emanote.Zk (Zk (..))
 import qualified Network.Wai.Middleware.Static as MStatic
-import Reflex.Dom.Builder.Static (renderStatic)
+import Reflex.Dom.Core
 import qualified Reflex.Dom.Pandoc as PR
 import qualified Reflex.TIncremental as TInc
 import Text.Mustache (ToMustache, object, (~>))
@@ -42,34 +42,45 @@ run inputDir Zk {..} = do
     Scotty.get "/:wikiLinkID" $ do
       wikiLinkID <- Tagged <$> param "wikiLinkID"
       zs <- Map.lookup wikiLinkID <$> TInc.readValue _zk_zettels
-      case zs of
-        Nothing -> Scotty.text "404"
+      let errW s = do
+            elAttr "div" ("style" =: "border: 1px ridge red; padding: 1em;") $ do
+              el "h2" $ text "Oops"
+              el "p" $ el "tt" $ text s
+      noteHtml <- case zs of
+        Nothing ->
+          renderReflexDom $ el "em" $ text "Nothing to display (no Pandoc AST available for this note)."
         Just v ->
           case v of
-            Left err -> Scotty.text $ "Conflict: " <> show err
-            Right (_fp, Left err) -> Scotty.text $ "Parse: " <> show err
+            Left err ->
+              renderReflexDom $ errW $ "Conflict: " <> show err
+            Right (_fp, Left err) ->
+              renderReflexDom $ errW $ "Parse: " <> show err
             Right (_fp, Right doc) -> do
-              mIndexTmpl <- Map.lookup "templates/note.html" <$> TInc.readValue _zk_htmlTemplate
-              case mIndexTmpl of
-                Nothing -> Scotty.text "Write your templates/note.html, dude"
-                Just (Left err) -> Scotty.text $ "oopsy template: " <> show err
-                Just (Right tmpl) -> do
-                  mdHtml <- renderPandoc doc
-                  graph <- TInc.readValue _zk_graph
-                  let mkLinkCtxList f = do
-                        let ls = uncurry mkLinkContext <$> G.connectionsOf f wikiLinkID graph
-                        traverse (traverse (renderPandoc . Pandoc mempty)) ls
-                  page <-
-                    Page wikiLinkID mdHtml
-                      <$> mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l)) -- Backlinks (sans uplinks)
-                      <*> mkLinkCtxList W.isBranch -- Downlinks
-                      <*> mkLinkCtxList W.isParent -- Uplinks
-                  html $ toLazy $ Mustache.substitute tmpl page
+              renderPandoc doc
+      graph <- TInc.readValue _zk_graph
+      let mkLinkCtxList f = do
+            let ls = uncurry mkLinkContext <$> G.connectionsOf f wikiLinkID graph
+            traverse (traverse (renderPandoc . Pandoc mempty)) ls
+      page <-
+        Page wikiLinkID noteHtml
+          <$> mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l)) -- Backlinks (sans uplinks)
+          <*> mkLinkCtxList W.isBranch -- Downlinks
+          <*> mkLinkCtxList W.isParent -- Uplinks
+      mIndexTmpl <- Map.lookup "templates/note.html" <$> TInc.readValue _zk_htmlTemplate
+      case mIndexTmpl of
+        Nothing -> Scotty.text "Write your templates/note.html, dude"
+        Just (Left err) -> Scotty.text $ "oopsy template: " <> show err
+        Just (Right tmpl) -> do
+          html $ toLazy $ Mustache.substitute tmpl page
 
 -- | TODO: Do this in TIncremental for performance
 renderPandoc :: MonadIO m => Pandoc -> m Html
 renderPandoc =
-  fmap (Html . decodeUtf8 . snd) . liftIO . renderStatic . PR.elPandoc PR.defaultConfig
+  renderReflexDom . PR.elPandoc PR.defaultConfig
+
+renderReflexDom :: (MonadIO m) => StaticWidget x a -> m Html
+renderReflexDom =
+  fmap (Html . decodeUtf8 . snd) . liftIO . renderStatic
 
 data LinkContext ctx = LinkContext
   { _linkcontext_id :: WikiLinkID,
