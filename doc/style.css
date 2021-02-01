@@ -146,6 +146,9 @@ footer {
   }
   nav.ctxlinks.left:hover {
     width: 400px;
+    position: fixed;
+    height: 100%;
+    overflow-y: scroll;
     padding-left: 1em;
     padding-right: 1em;
     border: 1px ridge;
