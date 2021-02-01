@@ -27,7 +27,6 @@ footer {
 /* Style WikiLinkIDs uniquely, across semantic elements (title & likns) */
 article > h1 { 
   text-align: center;
-  text-decoration: underline wavy #c418511a;
   font-size: 2em;
 }
 
@@ -108,16 +107,16 @@ div.pandoc div.checkbox {
   overflow-y: hidden;
   height: auto;
   max-height: 6em;
-  transition: max-height 0.4s ease-in-out;
 }
-.ctxlinks li:hover .ctx {
+.ctxlinks:hover li .ctx {
   max-height: 9999em;
-  box-shadow: -8px -6px 8px -6px purple; 
+  border-radius: 5px;
   padding-left: 1em;
 }
 .ctxlinks .uplinks, .ctxlinks .downlinks {
   background-color: rgba(177, 68, 171, 0.096);
   padding-left: 0.2em;
+  border-radius: 5px;
 }
 
 /* Grids */
@@ -144,11 +143,13 @@ footer {
       "left content right"
       "footer footer footer"
   }
-  nav.ctxlinks.left:hover {
-    width: 400px;
+  nav.ctxlinks.left {
     position: fixed;
     height: 100%;
     overflow-y: scroll;
+  }
+  nav.ctxlinks.left:hover {
+    width: 600px;
     padding-left: 1em;
     padding-right: 1em;
     border: 1px ridge;
