@@ -63,7 +63,8 @@ run inputDir Zk {..} = do
             traverse (traverse (renderPandoc . Pandoc mempty)) ls
       page <-
         Page wikiLinkID noteHtml
-          <$> mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l)) -- Backlinks (sans uplinks)
+          -- TODO: Refactor using enum/dmap/gadt
+          <$> mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l) && not (W.isBranch l)) -- Backlinks (sans uplinks / downlinks)
           <*> mkLinkCtxList W.isBranch -- Downlinks
           <*> mkLinkCtxList W.isParent -- Uplinks
       mIndexTmpl <- Map.lookup "templates/note.html" <$> TInc.readValue _zk_htmlTemplate
