@@ -55,13 +55,11 @@ a[title^="link:"]:hover {
 }
 a[title="link:branch"]::after {
   content: "#";
-  color: gray;
-  opacity: 0.5;
+  color: rgba(128, 128, 128, 0.548);
 }
 a[title="link:tag"]::before {
   content: "#";
-  color: gray;
-  opacity: 0.5;
+  color: rgba(128, 128, 128, 0.548);
 }
 a[title^="link:"], a[title^="link:"]:visited, a[title^="link:"]:hover, a[title^="link:"]:active  {
   color: inherit;
@@ -129,7 +127,7 @@ div.pandoc div.checkbox {
 nav.ctxlinks.left {
   grid-area: left;
   width: 200px;
-  transition: width 0.2s ease-in-out;
+  transition: width 0.05s ease-in-out;
 }
 nav.ctxlinks.right {
   grid-area: right;
@@ -148,8 +146,10 @@ footer {
   }
   nav.ctxlinks.left:hover {
     width: 400px;
-    border: 1px outset;
-    background-color: white;
-    box-shadow: 8px 0 6px -6px black;; 
+    padding-left: 1em;
+    padding-right: 1em;
+    border: 1px ridge;
+    background-color: rgb(255, 255, 255);
+    box-shadow: 8px -8px 6px -6px black;; 
   }
 }
