@@ -49,9 +49,9 @@ run inputDir Zk {..} = do
             Left err -> Scotty.text $ "Conflict: " <> show err
             Right (_fp, Left err) -> Scotty.text $ "Parse: " <> show err
             Right (_fp, Right doc) -> do
-              mIndexTmpl <- Map.lookup "index.html" <$> TInc.readValue _zk_htmlTemplate
+              mIndexTmpl <- Map.lookup "templates/note.html" <$> TInc.readValue _zk_htmlTemplate
               case mIndexTmpl of
-                Nothing -> Scotty.text "Write your index.html, dude"
+                Nothing -> Scotty.text "Write your templates/note.html, dude"
                 Just (Left err) -> Scotty.text $ "oopsy template: " <> show err
                 Just (Right tmpl) -> do
                   mdHtml <- renderPandoc doc

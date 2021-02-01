@@ -37,7 +37,7 @@ run inputDir = do
           & pipeGraph
       htmlOut =
         input
-          & pipeFilterFilename (== "index.html")
+          & pipeFilterFilename ("templates/" `isPrefixOf`)
           & pipeLoadTemplates
   Zk
     <$> TInc.mirrorIncremental pandocOut

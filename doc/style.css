@@ -90,9 +90,13 @@ div.pandoc div.checkbox {
   padding-right: 1em;
   list-style-type: none;
 }
-.ctxlinks .ctx {
+.ctxlinks li .ctx {
   margin-top: 0.5em;
   zoom: 85%;
+  overflow-y: hidden;
+}
+.ctxlinks li:not(:hover) .ctx {
+  max-height: 5em;
 }
 .ctxlinks .uplinks, .ctxlinks .downlinks {
   background-color: rgba(177, 68, 171, 0.096);
