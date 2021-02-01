@@ -7,6 +7,12 @@
 <head>
     <title>{{wikiLinkID}}</title>
     <link href="style.css" rel="stylesheet" />
+    <!-- Highlight links to current page; especially useful in backlinks -->
+    <style>
+        a[href="{{wikiLinkID}}"] {
+            background-color: yellow;
+        }
+    </style>
 </head>
 
 <body>
