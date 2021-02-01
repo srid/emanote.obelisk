@@ -48,6 +48,7 @@ a[title^="link:"] {
   font-weight: bolder;
   text-decoration: underline wavy #c418511a;
   color: #c41851ea !important;
+  transition: text-decoration-color 0.2s ease-in-out;
 }
 a[title^="link:"]:hover {
   text-decoration-color: black;
@@ -107,9 +108,14 @@ div.pandoc div.checkbox {
   margin-top: 0.5em;
   zoom: 85%;
   overflow-y: hidden;
+  height: auto;
+  max-height: 6em;
+  transition: max-height 0.4s ease-in-out;
 }
-.ctxlinks li:not(:hover) .ctx {
-  max-height: 5em;
+.ctxlinks li:hover .ctx {
+  max-height: 9999em;
+  box-shadow: -8px -6px 8px -6px purple; 
+  padding-left: 1em;
 }
 .ctxlinks .uplinks, .ctxlinks .downlinks {
   background-color: rgba(177, 68, 171, 0.096);
@@ -122,6 +128,8 @@ div.pandoc div.checkbox {
 }
 nav.ctxlinks.left {
   grid-area: left;
+  width: 200px;
+  transition: width 0.2s ease-in-out;
 }
 nav.ctxlinks.right {
   grid-area: right;
@@ -133,9 +141,15 @@ footer {
   .wrapper {
     display: grid;
     gap: 1em;
-    grid-template-columns: 1fr 4fr 1fr;
+    grid-template-columns: 200px auto 200px; 
     grid-template-areas:
       "left content right"
       "footer footer footer"
+  }
+  nav.ctxlinks.left:hover {
+    width: 400px;
+    border: 1px outset;
+    background-color: white;
+    box-shadow: 8px 0 6px -6px black;; 
   }
 }
