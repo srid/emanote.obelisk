@@ -137,13 +137,13 @@ footer {
       "footer footer footer"
   }
   nav.ctxlinks.left {
-    position: fixed;
-    height: 100%;
     width: 200px;
     transition: width 0.05s ease-in-out;
-    overflow-y: scroll;
   }
   nav.ctxlinks.left:hover {
+    position: fixed;
+    height: 100%;
+    overflow-y: scroll;
     width: 600px;
     padding-left: 1em;
     padding-right: 1em;
@@ -154,10 +154,11 @@ footer {
   /* Trim large ctx on desktop; show in full on hover */
   .ctxlinks li .ctx {
     overflow-y: hidden;
-    height: auto;
-    max-height: 6em;
+    height: 0em;
+    max-height: 1em;
   }
   .ctxlinks:hover li .ctx {
+    height: auto;
     max-height: 9999em;
     padding-left: 1em;
   }
