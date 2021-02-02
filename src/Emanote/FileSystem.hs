@@ -66,7 +66,7 @@ directoryTreeIncremental ignores p = do
       -- In that case, do a mapIncrementalWithOldValue to automatically remove
       -- the file contents.
       liftIO $ readFilesAsPatchMap evts
-  holdIncremental fs0 $ traceEvent "pp" fsPatches
+  holdIncremental fs0 fsPatches
   where
     readFilesAsPatchMap :: [FSN.Event] -> IO (PatchMap FilePath PathContent)
     readFilesAsPatchMap =

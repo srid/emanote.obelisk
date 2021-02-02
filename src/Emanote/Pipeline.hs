@@ -27,7 +27,7 @@ import qualified Text.Pandoc.LinkContext as LC
 run :: MonadHeadlessApp t m => FilePath -> m Zk
 run inputDir = do
   input' <- directoryTreeIncremental [".*/**"] inputDir
-  -- TODO: Deal with directory events sensibly, instead of ignore thing.
+  -- TODO: Deal with directory events sensibly, instead of ignoring them.
   let input = input' & pipeFilesOnly
   logInputChanges input
   let pandocOut =
