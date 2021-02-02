@@ -1,11 +1,7 @@
 # Builds a docker image containing the neuron executable
 #
 # Run as:
-#   docker load -i $(
-#     nix-build docker.nix \
-#       --argstr name <image-name> \
-#       --argstr tag <image-tag>
-#   )
+#   docker load -i $(nix-build docker.nix)
 let
   pkgs = import ./dep/nixpkgs {};
   emanote = import ./. {};
@@ -16,15 +12,12 @@ in {
   inherit name tag;
   contents = [ 
     emanote
-    # These are required for the GitLab CI runner
-    pkgs.coreutils 
-    pkgs.bash_5 
   ];
 
   config = {
-    WorkingDir = "/notes";
+    WorkingDir = "/app";
     Volumes = {
-      "/notes" = {};
+      "/app" = {};
     };
   };
 }
