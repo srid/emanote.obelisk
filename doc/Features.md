@@ -1,3 +1,7 @@
 - Just start writing your `.md` files, and emanote will "emanate" them into a notebook.
 - Define your own HTML, by writing a `templates/note.html` (emanote treats this as a template).
 - All files under input directory (except the template) is statically served.
+
+## Builtin filters
+
+- [[Directory Hierarchy]]

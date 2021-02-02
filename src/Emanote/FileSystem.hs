@@ -1,4 +1,8 @@
-module Emanote.FileSystem (directoryTreeIncremental) where
+module Emanote.FileSystem
+  ( directoryTreeIncremental,
+    PathContent (..),
+  )
+where
 
 import Control.Monad.Fix (MonadFix)
 import Data.List (nubBy)
@@ -12,6 +16,17 @@ import System.FilePath (isRelative, makeRelative, (</>))
 import System.FilePattern (FilePattern)
 import qualified System.FilePattern as FP
 import qualified System.FilePattern.Directory as SFD
+
+data PathContent
+  = PathContent_Dir
+  | PathContent_File ByteString
+  deriving (Eq, Show)
+
+mkPathContent :: Bool -> FilePath -> IO PathContent
+mkPathContent isDir fp = do
+  if isDir
+    then pure PathContent_Dir
+    else PathContent_File <$> readFileBS fp
 
 -- | Return a reflex Incremental reflecting the selected files in a directory tree.
 --
@@ -32,34 +47,39 @@ directoryTreeIncremental ::
   -- | Directory root path.
   FilePath ->
   -- | A reflex @Incremental@ mapping relative path to the file's content.
-  m (Incremental t (PatchMap FilePath ByteString))
+  m (Incremental t (PatchMap FilePath PathContent))
 directoryTreeIncremental ignores p = do
   fsEvents <- watchDirWithDebounce 0.1 ignores p
   fs0 <- liftIO $ do
     fs <- SFD.getDirectoryFilesIgnore p ["**"] ignores
     fmap Map.fromList $
       forM fs $ \f -> do
-        s <- readFileBS (p </> f)
+        -- TODO: we should insert back the directories as well.
+        s <- mkPathContent False (p </> f)
         pure (f, s)
   fsPatches <- performEvent $
     ffor fsEvents $ \evts ->
-      -- FIXME: If the file is gone (probably tmp), we should just ignore this event.
-      -- But do it in a way to report to the user?
+      -- FIXME: If the file is quickly deleted (since event; probably tmp), we
+      -- should just ignore this event. But do it in a way to report to the
+      -- user?
+      -- TODO(!!) Dir updates (added/deleted) don't include their contents!!
+      -- In that case, do a mapIncrementalWithOldValue to automatically remove
+      -- the file contents.
       liftIO $ readFilesAsPatchMap evts
-  holdIncremental fs0 fsPatches
+  holdIncremental fs0 $ traceEvent "pp" fsPatches
   where
-    readFilesAsPatchMap :: [FSN.Event] -> IO (PatchMap FilePath ByteString)
+    readFilesAsPatchMap :: [FSN.Event] -> IO (PatchMap FilePath PathContent)
     readFilesAsPatchMap =
       fmap (PatchMap . Map.fromList . catMaybes) . traverse go
       where
         go = \case
-          FSN.Added fp _time False ->
-            Just . (fp,) . Just <$> readFileBS (p </> fp)
-          FSN.Modified fp _time False ->
-            Just . (fp,) . Just <$> readFileBS (p </> fp)
-          FSN.Removed fp _time False ->
+          FSN.Added fp _time isDir ->
+            Just . (fp,) . Just <$> mkPathContent isDir (p </> fp)
+          FSN.Modified fp _time isDir ->
+            Just . (fp,) . Just <$> mkPathContent isDir (p </> fp)
+          FSN.Removed fp _time _isDir ->
             pure $ Just (fp, Nothing)
-          _ ->
+          _ -> do
             pure Nothing
 
 -- | Like `watchDir` but batches file events, and limits to given dir children.
