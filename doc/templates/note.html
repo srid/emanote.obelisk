@@ -22,6 +22,20 @@
                 <h1>{{wikiLinkID}}</h1>
                 {{{mdHtml}}}
             </article>
+            <nav class="ctxlinks">
+                <div class="downlinks">
+                    <h2>Branch notes</h2>
+                    {{#downlinks}}
+                    <li>
+                        <header><a href="{{id}}" title="{{label}}">{{id}}</a></header>
+                        <div class="ctx">
+                            {{{ctxHtml}}}
+                        </div>
+                    </li>
+                    {{/downlinks}}
+                </div>
+                <!-- h2>Footnotes</h2 -->
+            </nav>
         </main>
         <nav class="ctxlinks left">
             <div class="uplinks">
@@ -47,20 +61,7 @@
                 {{/backlinks}}
             </div>
         </nav>
-        <nav class="ctxlinks right">
-            <div class="downlinks">
-                <h2>Branch notes</h2>
-                {{#downlinks}}
-                <li>
-                    <header><a href="{{id}}" title="{{label}}">{{id}}</a></header>
-                    <div class="ctx">
-                        {{{ctxHtml}}}
-                    </div>
-                </li>
-                {{/downlinks}}
-            </div>
-            <!-- h2>Footnotes</h2 -->
-        </nav>
+
         <footer>
             <a href="/">root</a>
             |
