@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Emanote.WebServer (run) where
@@ -28,6 +29,8 @@ run ::
   Zk ->
   IO ()
 run inputDir Zk {..} = do
+  n0 <- Map.size <$> TInc.readValue _zk_zettels
+  putTextLn $ toText inputDir <> ": " <> show n0 <> " notes (for now)"
   scotty 3000 $ do
     Scotty.middleware $ MStatic.staticPolicy (MStatic.addBase inputDir)
     Scotty.get "/" $ do
@@ -37,8 +40,8 @@ run inputDir Zk {..} = do
       html $
         toLazy $
           T.unwords $
-            wIds <&> \(untag -> x) ->
-              "<li><a href=\"" <> x <> "\">" <> x <> "</a></li>"
+            wIds <&> \wId ->
+              "<li><a href=\"" <> W.renderWikiLinkUrl wId <> "\">" <> untag wId <> "</a></li>"
     Scotty.get "/:wikiLinkID" $ do
       wikiLinkID <- Tagged <$> param "wikiLinkID"
       zs <- Map.lookup wikiLinkID <$> TInc.readValue _zk_zettels
@@ -85,6 +88,7 @@ renderReflexDom =
 
 data LinkContext ctx = LinkContext
   { _linkcontext_id :: WikiLinkID,
+    _linkcontext_url :: Text,
     _linkcontext_label :: WikiLinkLabel,
     _linkcontext_ctx :: ctx
   }
@@ -97,8 +101,9 @@ instance ToMustache Html where
   toMustache = Mustache.toMustache . unHtml
 
 mkLinkContext :: (WikiLinkLabel, WikiLinkContext) -> WikiLinkID -> LinkContext [Block]
-mkLinkContext (_linkcontext_label, _linkcontext_ctx) _linkcontext_id = do
-  LinkContext {..}
+mkLinkContext (_linkcontext_label, _linkcontext_ctx) _linkcontext_id =
+  let _linkcontext_url = W.renderWikiLinkUrl _linkcontext_id
+   in LinkContext {..}
 
 data Page = Page
   { _page_wikiLinkID :: WikiLinkID,
@@ -112,6 +117,7 @@ instance ToMustache (LinkContext Html) where
   toMustache LinkContext {..} =
     object
       [ "id" ~> untag _linkcontext_id,
+        "url" ~> _linkcontext_url,
         "label" ~> show @Text _linkcontext_label,
         "ctxHtml" ~> _linkcontext_ctx
       ]

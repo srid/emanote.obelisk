@@ -8,6 +8,7 @@ module Emanote.Markdown.WikiLink
     WikiLinkLabel (..),
     WikiLinkContext,
     parseWikiLinkUrl,
+    renderWikiLinkUrl,
     Directed (..),
     isParent,
     isBranch,
@@ -20,6 +21,7 @@ import qualified Commonmark.Inlines as CM
 import Commonmark.TokParsers (noneOfToks, symbol)
 import Data.Tagged (Tagged (..), untag)
 import qualified Data.Text as T
+import qualified Network.URI.Encode as URIEncode
 import qualified Text.Megaparsec as M
 import Text.Pandoc.Definition (Block)
 import qualified Text.Parsec as P
@@ -67,7 +69,7 @@ wikiLinkSpec =
 
 -- | Make [[Foo]] link to "Foo". In future, make this configurable.
 renderWikiLinkUrl :: WikiLinkID -> Text
-renderWikiLinkUrl (Tagged s) = s
+renderWikiLinkUrl (Tagged s) = toText $ URIEncode.encode $ toString s
 
 -- | Parse what was rendered by renderWikiLinkUrl
 parseWikiLinkUrl :: Maybe Text -> Text -> Maybe (WikiLinkLabel, WikiLinkID)
@@ -75,7 +77,7 @@ parseWikiLinkUrl mtitle s = do
   guard $ not $ ":" `T.isInfixOf` s
   guard $ not $ "/" `T.isInfixOf` s
   let linkLabel = parseWikiLinkLabel mtitle
-      linkId = Tagged s
+      linkId = Tagged $ toText $ URIEncode.decode (toString s)
   pure (linkLabel, linkId)
 
 data WikiLinkLabel
