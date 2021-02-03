@@ -66,8 +66,9 @@ run inputDir Zk {..} = do
             let ls = uncurry mkLinkContext <$> G.connectionsOf f wikiLinkID graph
             -- Sort in reverse order so that daily notes (calendar) are pushed down.
             sortOn Down <$> traverse (traverse (renderPandoc . Pandoc mempty)) ls
+          wikiLinkUrl = W.renderWikiLinkUrl wikiLinkID
       page <-
-        Page wikiLinkID noteHtml
+        Page wikiLinkID wikiLinkUrl noteHtml
           -- TODO: Refactor using enum/dmap/gadt
           <$> mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l) && not (W.isBranch l)) -- Backlinks (sans uplinks / downlinks)
           <*> mkLinkCtxList W.isBranch -- Downlinks
@@ -112,6 +113,7 @@ mkLinkContext (_linkcontext_label, _linkcontext_ctx) _linkcontext_id =
 
 data Page = Page
   { _page_wikiLinkID :: WikiLinkID,
+    _page_wikiLinkUrl :: Text,
     _page_mdHtml :: Html,
     _page_backlinks :: [LinkContext Html],
     _page_downlinks :: [LinkContext Html],
@@ -131,6 +133,7 @@ instance ToMustache Page where
   toMustache Page {..} =
     object
       [ "wikiLinkID" ~> untag _page_wikiLinkID,
+        "wikiLinkUrl" ~> _page_wikiLinkUrl,
         "mdHtml" ~> _page_mdHtml,
         "backlinks" ~> _page_backlinks,
         "uplinks" ~> _page_uplinks,
