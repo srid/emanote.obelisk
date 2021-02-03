@@ -134,7 +134,7 @@ pipeInjectDirZettels inc = do
              in Just $ s <> if parID == "." then connSuffix "index" else connSuffix parID
     connSuffix (target :: String) =
       -- Apparently \n doesn't work here
-      encodeUtf8 $ "\r\r---\r" <> "Folder: #[[" <> target <> "]]"
+      encodeUtf8 $ "\r\r" <> "Folder: #[[" <> target <> "]]"
 
 pipeLoadTemplates ::
   Reflex t =>
