@@ -14,6 +14,7 @@ body {
   max-width: 968px;
   margin: auto;
   background-color: white;
+    box-shadow: 2px 2px 3px gray;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -22,6 +23,10 @@ h1, h2, h3, h4, h5, h6 {
 
 nav {
   font-size: 0.95em;
+}
+
+li.home-link {
+  margin-bottom: 0.5em;
 }
 
 footer {
@@ -33,12 +38,12 @@ footer {
 
 /* Style WikiLinkIDs uniquely, across semantic elements (title & likns) */
 article > h1 { 
-  text-align: center;
+  text-align: left;
   font-size: 2em;
 }
 
 article {
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 article ul > li {
@@ -122,6 +127,7 @@ div.pandoc div.checkbox {
 /* Grids */
 .content {
   grid-area: content;
+  padding: 0.2em 0.9em 0.2em 0.2em;
 }
 nav.ctxlinks.left {
   grid-area: left;
@@ -138,18 +144,22 @@ footer {
     grid-template-columns: 1fr 2fr; 
     grid-template-areas:
       "left content content"
-      "footer footer footer"
+      "left footer footer"
   }
   nav.ctxlinks.left {
     padding-top: 1em;
     padding-left: 1em;
     padding-right: 1em;
     border-right: 1px ridge;
-    background-color: rgb(255, 255, 255);
+    box-shadow: 1px 1px 1px gray;
+    background-color: ivory;
   }
   /* Trim large ctx on desktop; show in full on hover */
   .ctxlinks.left li .ctx {
     overflow-y: hidden;
+  }
+  footer  {
+    vertical-align: bottom;
   }
 }
 @media (max-width: 699px) {
