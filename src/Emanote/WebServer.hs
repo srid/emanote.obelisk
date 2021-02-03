@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Emanote.WebServer (run) where
 
@@ -63,7 +64,8 @@ run inputDir Zk {..} = do
       graph <- TInc.readValue _zk_graph
       let mkLinkCtxList f = do
             let ls = uncurry mkLinkContext <$> G.connectionsOf f wikiLinkID graph
-            traverse (traverse (renderPandoc . Pandoc mempty)) ls
+            -- Sort in reverse order so that daily notes (calendar) are pushed down.
+            sortOn Down <$> traverse (traverse (renderPandoc . Pandoc mempty)) ls
       page <-
         Page wikiLinkID noteHtml
           -- TODO: Refactor using enum/dmap/gadt
@@ -92,7 +94,10 @@ data LinkContext ctx = LinkContext
     _linkcontext_label :: WikiLinkLabel,
     _linkcontext_ctx :: ctx
   }
-  deriving (Functor, Foldable, Traversable)
+  deriving (Functor, Foldable, Traversable, Eq)
+
+instance Eq (LinkContext ctx) => Ord (LinkContext ctx) where
+  compare = compare `on` _linkcontext_id
 
 newtype Html = Html {unHtml :: Text}
   deriving (Eq)
