@@ -124,6 +124,10 @@ div.pandoc div.checkbox {
   border-top: 1px ridge;
 }
 
+.ctxlinks .orphans {
+  opacity: 0.5;
+}
+
 .ctxlinks .uplinks {
   border-bottom: 1px dotted;
   margin-bottom: 1em;

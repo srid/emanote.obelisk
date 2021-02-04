@@ -34,6 +34,18 @@
                     </li>
                     {{/downlinks}}
                 </div>
+                <div class="orphans">
+                    <h2>Folgezettel Orphans</h2>
+                    <p>These notes are unreachable from any "structure" zettels.
+                        You can use <tt>[[..]]#</tt> or <tt>#[[..]]</tt> style links to
+                        hook them up (with context!).</p>
+                    {{#orphans}}
+                    <li>
+                        <!-- TODO: Don't hardcode "link:branch" here -->
+                        <header>ORP <a href="{{url}}" title="link:nolbl">{{id}}</a></header>
+                    </li>
+                    {{/orphans}}
+                </div>
             </nav>
         </main>
         <nav class="ctxlinks left">
