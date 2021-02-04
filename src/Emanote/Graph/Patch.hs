@@ -4,9 +4,12 @@ module Emanote.Graph.Patch where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import Emanote.Graph (E, Graph (Graph), V, postSetWithLabel)
 import Reflex.Patch.Class (Patch (..))
 
+-- | NOTE: Patching a graph may leave orphan vertices behind. Use
+-- @patchedGraphVertexSet@ to get the effective list of vertices.
 newtype PatchGraph = PatchGraph {unPatchGraph :: Map V (Maybe [(E, V)])}
 
 instance Patch PatchGraph where
@@ -57,11 +60,30 @@ instance Patch PatchGraph where
                         )
                 modify $
                   AM.overlay newVertexOverlay
-                -- FIXME: if a v2 got removed, and it is not linked other
+                -- NOTE: if a v2 got removed, and it is not linked in other
                 -- vertices, we should remove it *IF* there is not actual note
-                -- on disk.
-                -- One way to solve this is to create special edges. If a vertex
-                -- points to file on disk, create a special vertex OnDisk, and
-                -- make an edge to this OnDisk vertex (with possibly filename
-                -- being the label?).
+                -- on disk. But this "actula note" check is better decoupled,
+                -- and checked elsewhere. See patchedGraphVertexSet below.
                 pure True
+
+-- | Return the vertices in the graph with the given pruning function.
+--
+-- Use this function to accomodate for PatchGraph's idiosyncratic behaviour of
+-- leaving orphans behind.
+--
+-- Prunes only orphan vertices. i.e., the pruning function cannot prune vertices
+-- with non-zero edges.
+patchedGraphVertexSet :: (V -> Bool) -> AM.AdjacencyMap E V -> Set V
+patchedGraphVertexSet exists g =
+  let nonOrphans = connectedVertices g
+      orphans = AM.vertexSet g `Set.difference` nonOrphans
+      orphansExisting = Set.filter exists orphans
+   in nonOrphans <> orphansExisting
+  where
+    -- Because patching a graph can leave orphan vertices behind (which may or may
+    -- not correspond to actual thing), this function maybe used *in conjunction
+    -- with* the store of actual things, to determined the effective list of
+    -- vertices.
+    connectedVertices :: AM.AdjacencyMap E V -> Set V
+    connectedVertices =
+      Set.fromList . concatMap (\(_e, v1, v2) -> [v1, v2]) . AM.edgeList

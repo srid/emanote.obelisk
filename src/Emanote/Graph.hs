@@ -48,6 +48,3 @@ filterBy f graph =
       let lbls' = filter (f . UserDefinedDirection . fst) lbls
       guard $ not $ null lbls'
       pure (lbls', v1, v2)
-
-vertexSet :: Graph -> Set V
-vertexSet = AM.vertexSet . unGraph

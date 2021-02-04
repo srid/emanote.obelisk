@@ -13,6 +13,7 @@ import qualified Data.Set as Set
 import Data.Tagged
 import qualified Data.Text as T
 import qualified Emanote.Graph as G
+import qualified Emanote.Graph.Patch as GP
 import Emanote.Markdown.WikiLink
 import qualified Emanote.Markdown.WikiLink as W
 import Emanote.Zk (Zk (..))
@@ -46,12 +47,12 @@ run inputDir Zk {..} = do
               "<li><a href=\"" <> W.renderWikiLinkUrl wId <> "\">" <> untag wId <> "</a></li>"
     Scotty.get "/:wikiLinkID" $ do
       wikiLinkID <- Tagged <$> param "wikiLinkID"
-      zs <- Map.lookup wikiLinkID <$> TInc.readValue _zk_zettels
+      zs <- TInc.readValue _zk_zettels
       let errW s = do
             elAttr "div" ("style" =: "border: 1px ridge red; padding: 1em;") $ do
               el "h2" $ text "Oops"
               el "p" $ el "tt" $ text s
-      noteHtml <- case zs of
+      noteHtml <- case Map.lookup wikiLinkID zs of
         Nothing ->
           renderReflexDom $ el "em" $ text "Nothing to display (no Pandoc AST available for this note)."
         Just v ->
@@ -69,8 +70,9 @@ run inputDir Zk {..} = do
             sortOn Down <$> traverse (traverse (renderPandoc . Pandoc mempty)) ls
           wikiLinkUrl = W.renderWikiLinkUrl wikiLinkID
           orphans =
-            let indexed = G.vertexSet $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
-                all' = G.vertexSet graph
+            let getVertices = GP.patchedGraphVertexSet (isJust . flip Map.lookup zs) . G.unGraph
+                indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
+                all' = getVertices graph
                 unindexed = all' `Set.difference` indexed
              in Set.toList unindexed <&> mkLinkContext (WikiLinkLabel_Unlabelled, mempty)
       page <-
