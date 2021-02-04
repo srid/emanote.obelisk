@@ -1,8 +1,7 @@
 cabal-version:      3.0
-name:               emanote
+name:               emanote-cli
 version:            0.1.0.0
-license:            BSD-3-Clause
-license-file:       LICENSE
+license:            AGPL-3.0-only
 author:             Sridhar Ratnakumar
 maintainer:         srid@srid.ca
 extra-source-files: CHANGELOEmanote.md

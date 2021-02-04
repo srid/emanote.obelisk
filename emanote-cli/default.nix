@@ -9,12 +9,12 @@ let
             (import ./dep/reflex-fsnotify/thunk.nix) {});
     };
   }).extend (pkgs.haskell.lib.packageSourceOverrides {
-    emanote = gitignoreSource ./.;
+    emanote-cli = gitignoreSource ./.;
     reflex-dom-pandoc = import ./dep/reflex-dom-pandoc/thunk.nix;
     pandoc-link-context = import ./dep/pandoc-link-context/thunk.nix;
   });
   shell = hp.shellFor {
-    packages = p: [ p.emanote ];
+    packages = p: [ p.emanote-cli ];
     buildInputs = 
       [ hp.cabal-install
         hp.cabal-fmt
@@ -23,4 +23,4 @@ let
       ];
   };
 in 
-  if pkgs.lib.inNixShell then shell else hp.emanote
+  if pkgs.lib.inNixShell then shell else hp.emanote-cli
