@@ -15,7 +15,7 @@ instance Patch PatchGraph where
     Graph <$> patch p graph
     where
       patch ::
-        (Ord v, Eq e, Monoid e) =>
+        (Ord v, Show v, Show e, Eq e, Monoid e) =>
         Map v (Maybe [(e, v)]) ->
         AM.AdjacencyMap e v ->
         Maybe (AM.AdjacencyMap e v)
@@ -26,7 +26,7 @@ instance Patch PatchGraph where
               guard $ or changed
               pure g'
       patchVertex ::
-        (Ord v, Eq e, Monoid e, MonadState (AM.AdjacencyMap e v) m) =>
+        (Ord v, Show v, Show e, Eq e, Monoid e, MonadState (AM.AdjacencyMap e v) m) =>
         (v, Maybe [(e, v)]) ->
         m Bool
       patchVertex (v, mes) =
@@ -40,18 +40,28 @@ instance Patch PatchGraph where
             let esOld = toList $ postSetWithLabel v g
             if es == esOld
               then
-                gets (AM.hasVertex v) >>= \case
-                  True -> pure False
-                  False -> modify (AM.overlay (AM.vertex v)) >> pure True
+                if null es
+                  then
+                    gets (AM.hasVertex v) >>= \case
+                      -- No edges, so we must manually add the orphan vertex
+                      False -> modify (AM.overlay (AM.vertex v)) >> pure True
+                      True -> pure False
+                  else pure False
               else do
                 -- Remove all edges, then add new ones back in.
                 forM_ esOld $ \(_, v2) ->
                   modify $ AM.removeEdge v v2
                 let newVertexOverlay =
-                      AM.vertex v
-                        `AM.overlay` AM.edges
-                          ( (\(e, v1) -> (e, v, v1)) <$> es
-                          )
+                      AM.edges
+                        ( (\(e, v1) -> (e, v, v1)) <$> es
+                        )
                 modify $
                   AM.overlay newVertexOverlay
+                -- FIXME: if a v2 got removed, and it is not linked other
+                -- vertices, we should remove it *IF* there is not actual note
+                -- on disk.
+                -- One way to solve this is to create special edges. If a vertex
+                -- points to file on disk, create a special vertex OnDisk, and
+                -- make an edge to this OnDisk vertex (with possibly filename
+                -- being the label?).
                 pure True
