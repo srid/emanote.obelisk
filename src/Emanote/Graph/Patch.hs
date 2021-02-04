@@ -39,13 +39,19 @@ instance Patch PatchGraph where
             g <- get
             let esOld = toList $ postSetWithLabel v g
             if es == esOld
-              then pure False
+              then
+                gets (AM.hasVertex v) >>= \case
+                  True -> pure False
+                  False -> modify (AM.overlay (AM.vertex v)) >> pure True
               else do
                 -- Remove all edges, then add new ones back in.
                 forM_ esOld $ \(_, v2) ->
                   modify $ AM.removeEdge v v2
+                let newVertexOverlay =
+                      AM.vertex v
+                        `AM.overlay` AM.edges
+                          ( (\(e, v1) -> (e, v, v1)) <$> es
+                          )
                 modify $
-                  AM.overlay $
-                    AM.edges $
-                      (\(e, v1) -> (e, v, v1)) <$> es
+                  AM.overlay newVertexOverlay
                 pure True

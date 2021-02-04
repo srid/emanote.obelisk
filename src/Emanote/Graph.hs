@@ -38,3 +38,16 @@ connectionsOf f v graph =
           flip mapMaybe es $ \(lbl, ctx) -> do
             guard $ f (dir lbl)
             pure ((lbl, ctx), t)
+
+-- | Filter the graph to contain only edges satisfying the predicate
+filterBy :: (Directed WikiLinkLabel -> Bool) -> Graph -> Graph
+filterBy f graph =
+  Graph $ AM.edges $ mapMaybe g $ AM.edgeList $ unGraph graph
+  where
+    g (lbls, v1, v2) = do
+      let lbls' = filter (f . UserDefinedDirection . fst) lbls
+      guard $ not $ null lbls'
+      pure (lbls', v1, v2)
+
+vertexSet :: Graph -> Set V
+vertexSet = AM.vertexSet . unGraph

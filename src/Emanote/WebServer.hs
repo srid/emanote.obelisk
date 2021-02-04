@@ -9,6 +9,7 @@
 module Emanote.WebServer (run) where
 
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import Data.Tagged
 import qualified Data.Text as T
 import qualified Emanote.Graph as G
@@ -21,7 +22,7 @@ import qualified Reflex.Dom.Pandoc as PR
 import qualified Reflex.TIncremental as TInc
 import Text.Mustache (ToMustache, object, (~>))
 import qualified Text.Mustache as Mustache
-import Text.Pandoc.Definition (Block, Pandoc (Pandoc))
+import Text.Pandoc.Definition (Pandoc (Pandoc))
 import Web.Scotty (html, param, scotty)
 import qualified Web.Scotty as Scotty
 
@@ -67,12 +68,18 @@ run inputDir Zk {..} = do
             -- Sort in reverse order so that daily notes (calendar) are pushed down.
             sortOn Down <$> traverse (traverse (renderPandoc . Pandoc mempty)) ls
           wikiLinkUrl = W.renderWikiLinkUrl wikiLinkID
+          orphans =
+            let indexed = G.vertexSet $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
+                all' = G.vertexSet graph
+                unindexed = all' `Set.difference` indexed
+             in Set.toList unindexed <&> mkLinkContext (WikiLinkLabel_Unlabelled, mempty)
       page <-
         Page wikiLinkID wikiLinkUrl noteHtml
           -- TODO: Refactor using enum/dmap/gadt
           <$> mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l) && not (W.isBranch l)) -- Backlinks (sans uplinks / downlinks)
           <*> mkLinkCtxList W.isBranch -- Downlinks
           <*> mkLinkCtxList W.isParent -- Uplinks
+          <*> pure orphans
       mIndexTmpl <- Map.lookup "templates/note.html" <$> TInc.readValue _zk_htmlTemplate
       case mIndexTmpl of
         Nothing -> Scotty.text "Write your templates/note.html, dude"
@@ -106,7 +113,7 @@ newtype Html = Html {unHtml :: Text}
 instance ToMustache Html where
   toMustache = Mustache.toMustache . unHtml
 
-mkLinkContext :: (WikiLinkLabel, WikiLinkContext) -> WikiLinkID -> LinkContext [Block]
+mkLinkContext :: (WikiLinkLabel, ctx) -> WikiLinkID -> LinkContext ctx
 mkLinkContext (_linkcontext_label, _linkcontext_ctx) _linkcontext_id =
   let _linkcontext_url = W.renderWikiLinkUrl _linkcontext_id
    in LinkContext {..}
@@ -117,7 +124,9 @@ data Page = Page
     _page_mdHtml :: Html,
     _page_backlinks :: [LinkContext Html],
     _page_downlinks :: [LinkContext Html],
-    _page_uplinks :: [LinkContext Html]
+    _page_uplinks :: [LinkContext Html],
+    -- TODO: Use Link Type, as there is no context
+    _page_orphans :: [LinkContext ()]
   }
 
 instance ToMustache (LinkContext Html) where
@@ -129,6 +138,14 @@ instance ToMustache (LinkContext Html) where
         "ctxHtml" ~> _linkcontext_ctx
       ]
 
+instance ToMustache (LinkContext ()) where
+  toMustache LinkContext {..} =
+    object
+      [ "id" ~> untag _linkcontext_id,
+        "url" ~> _linkcontext_url,
+        "label" ~> show @Text _linkcontext_label
+      ]
+
 instance ToMustache Page where
   toMustache Page {..} =
     object
@@ -137,5 +154,6 @@ instance ToMustache Page where
         "mdHtml" ~> _page_mdHtml,
         "backlinks" ~> _page_backlinks,
         "uplinks" ~> _page_uplinks,
-        "downlinks" ~> _page_downlinks
+        "downlinks" ~> _page_downlinks,
+        "orphans" ~> _page_orphans
       ]
