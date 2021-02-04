@@ -4,4 +4,4 @@
 
 ## Builtin filters
 
-- [[Directory Hierarchy]]
+- [[Directory Hierarchy]] (disabled; not recommended)

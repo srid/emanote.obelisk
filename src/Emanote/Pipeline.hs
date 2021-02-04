@@ -33,7 +33,7 @@ run inputDir = do
   let pandocOut =
         input
           & pipeFilterFilename (\fn -> takeExtension fn == ".md")
-          & pipeInjectDirZettels
+          -- & pipeInjectDirZettels
           & pipeFlattenFsTree (Tagged . toText . dropExtension . takeFileName)
           & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
       graphOut =
@@ -84,8 +84,8 @@ pipeFilterFilename selectFile =
 --
 -- - Create `$folder.md` (unless exists) for every $folder containing .md files
 -- - Append the text `Child of #[[Parent Folder]]` at the end of every .md file
-pipeInjectDirZettels :: Reflex t => Incremental t (PatchMap FilePath ByteString) -> Incremental t (PatchMap FilePath ByteString)
-pipeInjectDirZettels inc = do
+_pipeInjectDirZettels :: Reflex t => Incremental t (PatchMap FilePath ByteString) -> Incremental t (PatchMap FilePath ByteString)
+_pipeInjectDirZettels inc = do
   inc
     & unsafeMapIncrementalWithOldValue
       (fmapTargetAsPatch createFiles)
