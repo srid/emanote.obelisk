@@ -8,6 +8,7 @@ import qualified Emanote.Markdown.WikiLink as M
 import Reflex (PatchMap)
 import Reflex.TIncremental (TIncremental)
 import qualified Reflex.TIncremental as TInc
+import Relude
 import qualified Text.Mustache.Types as Mustache
 import Text.Pandoc.Definition (Pandoc)
 

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -xe
+nix-shell -p ormolu --run 'find . -name \*.hs | grep -v dist | xargs ormolu -m inplace'

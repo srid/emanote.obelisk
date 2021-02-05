@@ -21,6 +21,7 @@ import qualified Network.Wai.Middleware.Static as MStatic
 import Reflex.Dom.Core
 import qualified Reflex.Dom.Pandoc as PR
 import qualified Reflex.TIncremental as TInc
+import Relude
 import Text.Mustache (ToMustache, object, (~>))
 import qualified Text.Mustache as Mustache
 import Text.Pandoc.Definition (Pandoc (Pandoc))

@@ -2,11 +2,11 @@
 
 module Main where
 
+import qualified Emanote
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
 import Main.Utf8 (withUtf8)
 import Options.Applicative
 import System.FilePath (addTrailingPathSeparator)
-import qualified Emanote
 
 cliParser :: Parser FilePath
 cliParser =

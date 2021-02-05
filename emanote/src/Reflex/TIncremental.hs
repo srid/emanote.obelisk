@@ -9,6 +9,7 @@ where
 import Control.Concurrent.STM (TChan)
 import qualified Control.Concurrent.STM as STM
 import Reflex
+import Relude
 
 -- | Represents a reflex @Incremental@ *outside* its network, whilst continuing to
 -- support incremental updates.

@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Emanote.Pipeline (run) where
 
@@ -19,6 +20,7 @@ import Emanote.Zk (Zk (Zk))
 import Reflex
 import Reflex.Host.Headless (MonadHeadlessApp)
 import qualified Reflex.TIncremental as TInc
+import Relude
 import System.FilePath (dropExtension, takeDirectory, takeExtension, takeFileName)
 import qualified Text.Mustache as Mustache
 import Text.Pandoc.Definition (Pandoc)

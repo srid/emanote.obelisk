@@ -21,6 +21,7 @@ import qualified Commonmark.Inlines as CM
 import Commonmark.TokParsers (noneOfToks, symbol)
 import Data.Tagged (Tagged (..), untag)
 import Emanote.Markdown.WikiLink
+import Relude
 import qualified Text.Megaparsec as M
 import qualified Text.Parsec as P
 

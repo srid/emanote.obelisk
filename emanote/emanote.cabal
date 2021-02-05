@@ -6,10 +6,6 @@ author:             Sridhar Ratnakumar
 maintainer:         srid@srid.ca
 
 library
-  mixins:
-    base hiding (Prelude),
-    relude (Relude as Prelude, Relude.Extra)
-
   hs-source-dirs:     src
   exposed-modules:
     Emanote.FileSystem
@@ -68,6 +64,7 @@ library
     TupleSections
     TypeApplications
     ViewPatterns
+    NoImplicitPrelude
 
   ghc-options:
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns

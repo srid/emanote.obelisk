@@ -15,6 +15,7 @@ import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
 import Control.Monad.Combinators (manyTill)
 import Data.Tagged (Tagged (..))
+import Relude
 import qualified Text.Megaparsec as M
 import qualified Text.Megaparsec.Char as M
 import qualified Text.Pandoc.Builder as B

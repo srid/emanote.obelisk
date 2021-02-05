@@ -10,6 +10,7 @@ import qualified Data.Map as Map
 import Data.Time.Clock (NominalDiffTime)
 import Reflex
 import Reflex.FSNotify (FSEvent, watchTree)
+import Relude
 import System.Directory (makeAbsolute)
 import qualified System.FSNotify as FSN
 import System.FilePath (isRelative, makeRelative, (</>))
