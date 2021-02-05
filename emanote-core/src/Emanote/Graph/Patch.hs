@@ -7,6 +7,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Emanote.Graph (E, Graph (Graph), V, postSetWithLabel)
 import Reflex.Patch.Class (Patch (..))
+import Relude
 
 -- | NOTE: Patching a graph may leave orphan vertices behind. Use
 -- @patchedGraphVertexSet@ to get the effective list of vertices.

@@ -2,6 +2,7 @@ module Emanote.Graph where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
 import Emanote.Markdown.WikiLink (Directed (..), WikiLinkContext, WikiLinkID, WikiLinkLabel)
+import Relude
 
 type V = WikiLinkID
 

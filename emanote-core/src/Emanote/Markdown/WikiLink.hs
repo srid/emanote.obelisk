@@ -2,18 +2,13 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GADTs #-}
 
-module Emanote.Markdown.WikiLink
-where
+module Emanote.Markdown.WikiLink where
 
-import qualified Commonmark as CM
-import qualified Commonmark.Inlines as CM
-import Commonmark.TokParsers (noneOfToks, symbol)
-import Data.Tagged (Tagged (..), untag)
+import Data.Tagged (Tagged (..))
 import qualified Data.Text as T
 import qualified Network.URI.Encode as URIEncode
-import qualified Text.Megaparsec as M
+import Relude
 import Text.Pandoc.Definition (Block)
-import qualified Text.Parsec as P
 import Text.Read
 import qualified Text.Show (Show (..))
 

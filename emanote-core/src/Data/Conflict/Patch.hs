@@ -3,6 +3,7 @@ module Data.Conflict.Patch where
 import Data.Conflict (Conflict (..), increaseConflict, lowerConflict, resolveConflicts)
 import qualified Data.Map as Map
 import Reflex (PatchMap (..), fmapMaybe)
+import Relude
 import Relude.Extra (groupBy)
 
 applyPatch ::

@@ -1,4 +1,4 @@
-cabal-version:      3.0
+cabal-version:      2.4
 name:               emanote-core
 version:            0.1.0.0
 license:            AGPL-3.0-only
@@ -7,9 +7,6 @@ maintainer:         srid@srid.ca
 extra-source-files: CHANGELOEmanote.md
 
 library
-  mixins:
-    base hiding (Prelude),
-    relude (Relude as Prelude, Relude.Extra)
 
   hs-source-dirs:     src
   exposed-modules:
@@ -57,6 +54,7 @@ library
     TupleSections
     TypeApplications
     ViewPatterns
+    NoImplicitPrelude
 
   ghc-options:
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns
