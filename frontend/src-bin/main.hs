@@ -1,5 +1,5 @@
-import Frontend
 import Common.Route
+import Frontend
 import Obelisk.Frontend
 import Obelisk.Route.Frontend
 import Reflex.Dom
