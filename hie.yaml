@@ -1,0 +1,10 @@
+cradle:
+  cabal:
+    - path: "./frontend/src/"
+      component: "lib:frontend"
+    - path: "./common/src/"
+      component: "lib:common"
+    - path: "./backend/src/"
+      component: "lib:backend"
+    - path: "./emanote-core/src/"
+      component: "lib:emanote"

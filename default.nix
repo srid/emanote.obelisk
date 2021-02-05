@@ -22,7 +22,7 @@ project ./. ({ pkgs, hackGet, ... }: {
   ios.bundleName = "Emanote";
 
   packages = {
-    emanote-core = hackGet ./emanote-cli;
+    emanote-core = hackGet ./emanote-core;
     pandoc-link-context = hackGet ./dep/pandoc-link-context;
     reflex-dom-pandoc = hackGet ./dep/reflex-dom-pandoc;
     algebraic-graphs = hackGet ./dep/alga;
