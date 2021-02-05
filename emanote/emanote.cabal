@@ -1,21 +1,28 @@
 cabal-version:      2.4
-name:               emanote-cli
+name:               emanote
 version:            0.1.0.0
 license:            AGPL-3.0-only
 author:             Sridhar Ratnakumar
 maintainer:         srid@srid.ca
 
-executable emanote
-  main-is:            Main.hs
+library
   mixins:
     base hiding (Prelude),
     relude (Relude as Prelude, Relude.Extra)
 
   hs-source-dirs:     src
+  exposed-modules:
+    Emanote.FileSystem
+    Emanote.Markdown
+    Emanote.Markdown.WikiLink.Parser
+    Emanote.Pipeline
+    Emanote.WebServer
+    Emanote.Zk
+    Emanote
+    Reflex.TIncremental
 
   build-depends:
     , emanote-core
-    , emanote
     , algebraic-graphs
     , async
     , base

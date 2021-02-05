@@ -10,7 +10,6 @@ let
     };
   }).extend (pkgs.haskell.lib.packageSourceOverrides {
     emanote-core = gitignoreSource ./../emanote-core;
-    emanote = gitignoreSource ../emanote;
     emanote-cli = gitignoreSource ./.;
     reflex-dom-pandoc = import ../dep/reflex-dom-pandoc/thunk.nix;
     pandoc-link-context = import ../dep/pandoc-link-context/thunk.nix;
