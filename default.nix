@@ -15,9 +15,21 @@
   }
 }:
 with obelisk;
-project ./. ({ ... }: {
-  android.applicationId = "systems.obsidian.obelisk.examples.minimal";
-  android.displayName = "Obelisk Minimal Example";
-  ios.bundleIdentifier = "systems.obsidian.obelisk.examples.minimal";
-  ios.bundleName = "Obelisk Minimal Example";
+project ./. ({ pkgs, hackGet, ... }: {
+  android.applicationId = "ca.srid.emanote";
+  android.displayName = "Emanote";
+  ios.bundleIdentifier = "ca.srid.emanote";
+  ios.bundleName = "Emanote";
+
+  packages = {
+    emanote-core = hackGet ./emanote-cli;
+    pandoc-link-context = hackGet ./dep/pandoc-link-context;
+    reflex-dom-pandoc = hackGet ./dep/reflex-dom-pandoc;
+    algebraic-graphs = hackGet ./dep/alga;
+  };
+  overrides = 
+    self: super: with pkgs.haskell.lib; {
+      clay = null;
+      algebraic-graphs = dontCheck super.algebraic-graphs;
+    };
 })
