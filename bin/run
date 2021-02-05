@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-set -xe
-cd emanote-cli && nix-shell --pure --run "ghcid --warnings -T \":main $*\"" ./default.nix

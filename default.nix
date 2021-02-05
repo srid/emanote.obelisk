@@ -26,10 +26,11 @@ project ./. ({ pkgs, hackGet, ... }: {
     pandoc-link-context = hackGet ./dep/pandoc-link-context;
     reflex-dom-pandoc = hackGet ./dep/reflex-dom-pandoc;
     algebraic-graphs = hackGet ./dep/alga;
+    relude = hackGet ./dep/relude;
   };
   overrides = 
     self: super: with pkgs.haskell.lib; {
-      clay = null;
       algebraic-graphs = dontCheck super.algebraic-graphs;
+      relude = dontCheck super.relude;
     };
 })
