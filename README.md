@@ -6,4 +6,4 @@ Write plain-text notes, but do complex things with it, such as to eman**a**te a 
 
 ---
 
-Run `bin/run ./doc` and then visit http://localhost:3000/index
+Run `bin/run $(pwd)/doc` and then visit http://localhost:3000/index

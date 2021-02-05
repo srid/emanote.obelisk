@@ -14,7 +14,7 @@ import Emanote.FileSystem (PathContent (..), directoryTreeIncremental)
 import qualified Emanote.Graph as G
 import qualified Emanote.Graph.Patch as G
 import qualified Emanote.Markdown as M
-import qualified Emanote.Markdown.WikiLink as M
+import qualified Emanote.Markdown.WikiLink.Parser as M
 import Emanote.Zk (Zk (Zk))
 import Reflex
 import Reflex.Host.Headless (MonadHeadlessApp)

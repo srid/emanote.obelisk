@@ -1,4 +1,6 @@
 cradle:
   cabal:
-    - path: "./src"
+    - path: "./emanote-core/src"
+      component: "lib:emanote"
+    - path: "./emanote-cli/src"
       component: "exe:emanote"
