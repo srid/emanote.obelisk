@@ -1,5 +1,5 @@
 {
-    "nixEnvSelector.nixShellConfig": "${workspaceRoot}/default.nix",
+    "nixEnvSelector.nixShellConfig": "${workspaceRoot}/emanote-cli/default.nix",
     "editor.formatOnType": true,
     "editor.formatOnSave": true
 }

@@ -1,28 +1,25 @@
 cabal-version:      3.0
-name:               emanote-cli
+name:               emanote-core
 version:            0.1.0.0
 license:            AGPL-3.0-only
 author:             Sridhar Ratnakumar
 maintainer:         srid@srid.ca
+extra-source-files: CHANGELOEmanote.md
 
-executable emanote
-  main-is:            Main.hs
+library
   mixins:
     base hiding (Prelude),
     relude (Relude as Prelude, Relude.Extra)
 
   hs-source-dirs:     src
-  other-modules:
-    Emanote.FileSystem
-    Emanote.Markdown
-    Emanote.Markdown.WikiLink.Parser
-    Emanote.Pipeline
-    Emanote.WebServer
-    Emanote.Zk
-    Reflex.TIncremental
+  exposed-modules:
+    Data.Conflict
+    Data.Conflict.Patch
+    Emanote.Graph
+    Emanote.Graph.Patch
+    Emanote.Markdown.WikiLink
 
   build-depends:
-    , emanote-core
     , algebraic-graphs
     , async
     , base
@@ -34,11 +31,8 @@ executable emanote
     , directory
     , filepath
     , filepattern
-    , fsnotify
     , uri-encode
     , megaparsec
-    , mustache
-    , optparse-applicative
     , pandoc-link-context
     , pandoc-types
     , parsec
@@ -46,16 +40,11 @@ executable emanote
     , reflex
     , reflex-dom-core
     , reflex-dom-pandoc
-    , reflex-fsnotify
     , relude
-    , scotty
     , shower
-    , stm
     , tagged
     , text
     , time
-    , wai-middleware-static
-    , with-utf8
 
   default-extensions:
     DeriveGeneric
