@@ -23,6 +23,8 @@ project ./. ({ pkgs, hackGet, ... }: {
 
   packages = {
     emanote-core = hackGet ./emanote-core;
+    emanote = hackGet ./emanote;
+    with-utf8 = hackGet ./dep/with-utf8;
     pandoc-link-context = hackGet ./dep/pandoc-link-context;
     reflex-dom-pandoc = hackGet ./dep/reflex-dom-pandoc;
     algebraic-graphs = hackGet ./dep/alga;
