@@ -13,6 +13,10 @@ library
                , obelisk-backend
                , obelisk-route
                , emanote
+               , relude
+               , containers
+               , text
+               , obelisk-executable-config-lookup
   exposed-modules:
     Backend
   default-extensions:

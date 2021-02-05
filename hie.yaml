@@ -7,4 +7,6 @@ cradle:
     - path: "./backend/src/"
       component: "lib:backend"
     - path: "./emanote-core/src/"
+      component: "lib:emanote-core"
+    - path: "./emanote/src/"
       component: "lib:emanote"
