@@ -1,19 +1,12 @@
-While hacking, run this:
+To run locally,
 
-```
-bin/run ./doc
-```
+1. Install https://github.com/obsidiansystems/obelisk
+2. Run `ob run`
 
 To **build**:
 
 ```
-nix-build
+nix-build -A exe
 ```
 
-Then **run** it against your folder of Markdown files (but first, copy `templates/` and `style.css` from ./doc directory):
-
-```
-./result/bin/emanote /path/to/your/notebook 
-```
-
-Go to <http://localhost:3000/>
+Go to <http://localhost:3000/> (This will soon get replaced with Obelisk's backend running at 8000)

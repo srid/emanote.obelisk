@@ -15,6 +15,20 @@ library
                , emanote
   exposed-modules:
     Backend
+  default-extensions:
+    DeriveGeneric
+    FlexibleContexts
+    LambdaCase
+    MultiWayIf
+    OverloadedStrings
+    RecordWildCards
+    ScopedTypeVariables
+    TupleSections
+    TypeApplications
+    ViewPatterns
+    NoImplicitPrelude
+
+
   ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wincomplete-record-updates -O -fno-show-valid-hole-fits
 
 executable backend

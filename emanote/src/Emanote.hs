@@ -9,13 +9,10 @@ import qualified Emanote.Pipeline as Pipeline
 import qualified Emanote.WebServer as WS
 import Emanote.Zk (Zk)
 import qualified Emanote.Zk as Zk
-import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
-import Main.Utf8 (withUtf8)
 import Options.Applicative
 import Reflex (Reflex (never))
 import Reflex.Host.Headless (runHeadlessApp)
 import Relude
-import System.FilePath (addTrailingPathSeparator)
 
 emanoteMain :: FilePath -> IO ()
 emanoteMain inputDir = do
