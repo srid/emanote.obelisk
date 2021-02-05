@@ -35,4 +35,12 @@ project ./. ({ pkgs, hackGet, ... }: {
       algebraic-graphs = dontCheck super.algebraic-graphs;
       relude = dontCheck super.relude;
     };
+  tools = _ghc: 
+    let 
+      pkgs = import ./dep/nixpkgs {};
+    in [
+      # Official HLS binaries are broken when using Template Haskell; 
+      # nixpkgs versions however are not. Use the latter.
+      pkgs.haskell.packages.ghc865.haskell-language-server
+    ];
 })
