@@ -17,6 +17,7 @@ library
                , containers
                , text
                , obelisk-executable-config-lookup
+               , async
   exposed-modules:
     Backend
   default-extensions:

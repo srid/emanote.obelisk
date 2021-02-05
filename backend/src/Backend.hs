@@ -1,7 +1,7 @@
 module Backend where
 
 import Common.Route
-import Control.Concurrent (forkIO)
+import Control.Concurrent.Async (race_)
 import qualified Data.Map.Strict as Map
 import Data.Text as T
 import qualified Emanote
@@ -17,8 +17,9 @@ backend =
         let getCfg k =
               maybe (error $ "Missing " <> k) (T.strip . decodeUtf8) $ Map.lookup k configs
             notesDir = getCfg "backend/notesDir"
-        void $ liftIO $ forkIO $ Emanote.emanoteMain (toString notesDir)
-        serve $ \_ -> do
-          return (),
+        race_ 
+           (Emanote.emanoteMain (toString notesDir))
+           $ serve $ \_ -> do
+              return (),
       _backend_routeEncoder = fullRouteEncoder
     }
