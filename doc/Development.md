@@ -1,9 +1,10 @@
 To run locally,
 
 1. Install https://github.com/obsidiansystems/obelisk
-2. Run `bin/run`
+1. Run `bin/css` by side (to build CSS)
+1. Run `ob run`
 
-Go to <http://localhost:3000/> (This will soon get replaced with Obelisk's backend running at 8000)
+Go to <http://localhost:3000/> (This will soon get replaced with Obelisk's WIP backend running at 8000)
 
 To do a full **build**:
 
