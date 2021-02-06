@@ -29,6 +29,7 @@ project ./. ({ pkgs, hackGet, ... }: {
     reflex-dom-pandoc = hackGet ./dep/reflex-dom-pandoc;
     algebraic-graphs = hackGet ./dep/alga;
     relude = hackGet ./dep/relude;
+    reflex-gadt-api = hackGet ./dep/reflex-gadt-api;
   };
   overrides = 
     self: super: with pkgs.haskell.lib; {

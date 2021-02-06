@@ -18,6 +18,13 @@ library
                , text
                , obelisk-executable-config-lookup
                , async
+               , websockets 
+               , websockets-snap
+               , reflex-gadt-api
+               , constraints-extras
+               , aeson
+               , some
+               , snap-core
   exposed-modules:
     Backend
   default-extensions:

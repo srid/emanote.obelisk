@@ -20,10 +20,13 @@ import Data.Functor.Identity
 import Data.Text (Text)
 import Obelisk.Route
 import Obelisk.Route.TH
+import Relude
 
 data BackendRoute :: * -> * where
   -- | Used to handle unparseable routes.
   BackendRoute_Missing :: BackendRoute ()
+  BackendRoute_Api :: BackendRoute ()
+  BackendRoute_WebSocket :: BackendRoute ()
 
 -- You can define any routes that will be handled specially by the backend here.
 -- i.e. These do not serve the frontend, but do something different, such as serving static files.
@@ -40,6 +43,8 @@ fullRouteEncoder =
     (FullRoute_Backend BackendRoute_Missing :/ ())
     ( \case
         BackendRoute_Missing -> PathSegment "missing" $ unitEncoder mempty
+        BackendRoute_Api -> PathSegment "api" $ unitEncoder mempty
+        BackendRoute_WebSocket -> PathSegment "ws" $ unitEncoder mempty
     )
     ( \case
         FrontendRoute_Main -> PathEnd $ unitEncoder mempty

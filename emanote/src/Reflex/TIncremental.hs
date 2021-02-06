@@ -29,7 +29,7 @@ runTIncremental TIncremental {..} = do
       p <- STM.readTChan _tincremental_patches
       x <- STM.readTVar _tincremental_value
       whenJust (apply p x) $ \x' ->
-        STM.writeTVar _tincremental_value x'
+        STM.writeTVar _tincremental_value $! x'
 
 -- | Mirror the Incremental outside of the Reflex network. Use `runTIncremental`
 -- to effectuate the mirror.

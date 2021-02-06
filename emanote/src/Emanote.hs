@@ -16,6 +16,10 @@ import Relude
 
 emanoteMain :: FilePath -> IO ()
 emanoteMain inputDir = do
+  emanoteMainWith inputDir (WS.run inputDir)
+
+emanoteMainWith :: FilePath -> (Zk -> IO ()) -> IO ()
+emanoteMainWith inputDir f = do
   ready <- newTChanIO @Zk
   race_
     -- Run the Reflex network that will produce the Zettelkasten (Zk)
@@ -28,8 +32,8 @@ emanoteMain inputDir = do
     ( do
         zk <- atomically $ readTChan ready
         race_
-          -- HTTP server
-          (WS.run inputDir zk)
+          -- Custom action
+          (f zk)
           -- Run TIncremental to process Reflex patches
           (Zk.run zk)
     )

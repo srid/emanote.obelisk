@@ -9,7 +9,28 @@ library
                , obelisk-route
                , mtl
                , text
+               , reflex-gadt-api 
+               , constraints-extras 
+               , aeson-gadt-th 
+               , aeson
+               , relude
+               , reflex-dom-core
+               , emanote-core
   exposed-modules:
     Common.Api
     Common.Route
+  default-extensions:
+    DeriveGeneric
+    FlexibleContexts
+    LambdaCase
+    MultiWayIf
+    OverloadedStrings
+    RecordWildCards
+    ScopedTypeVariables
+    TupleSections
+    TypeApplications
+    ViewPatterns
+    NoImplicitPrelude
+
+
   ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wincomplete-record-updates -O -fno-show-valid-hole-fits

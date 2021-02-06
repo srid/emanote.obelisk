@@ -15,8 +15,26 @@ library
                , obelisk-generated-static
                , text
                , emanote-core
+               , relude
+               , reflex-gadt-api
+               , constraints-extras
+               , aeson
   exposed-modules:
     Frontend
+  default-extensions:
+    DeriveGeneric
+    FlexibleContexts
+    LambdaCase
+    MultiWayIf
+    OverloadedStrings
+    RecordWildCards
+    ScopedTypeVariables
+    TupleSections
+    TypeApplications
+    ViewPatterns
+    NoImplicitPrelude
+
+
   ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wincomplete-record-updates -O -fno-show-valid-hole-fits
 
 executable frontend
