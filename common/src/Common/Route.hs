@@ -18,6 +18,7 @@ import Control.Category
 
 import Data.Functor.Identity
 import Data.Text (Text)
+import Emanote.Markdown.WikiLink (WikiLinkID)
 import Obelisk.Route
 import Obelisk.Route.TH
 import Relude
@@ -33,6 +34,7 @@ data BackendRoute :: * -> * where
 
 data FrontendRoute :: * -> * where
   FrontendRoute_Main :: FrontendRoute ()
+  FrontendRoute_Note :: FrontendRoute WikiLinkID
 
 -- This type is used to define frontend routes, i.e. ones for which the backend will serve the frontend.
 
@@ -48,6 +50,7 @@ fullRouteEncoder =
     )
     ( \case
         FrontendRoute_Main -> PathEnd $ unitEncoder mempty
+        FrontendRoute_Note -> PathSegment "note" $ readShowEncoder
     )
 
 concat

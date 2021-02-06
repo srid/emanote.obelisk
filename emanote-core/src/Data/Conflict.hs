@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Data.Conflict
   ( Conflict (..),
     resolveConflicts,
@@ -6,6 +9,7 @@ module Data.Conflict
   )
 where
 
+import Data.Aeson
 import qualified Data.List as List
 import qualified Data.Map as Map
 import Relude
@@ -16,7 +20,18 @@ import Relude.Extra (groupBy)
 -- A conflict happens when a key (see @resolveConflicts@) maps to two or more
 -- values, each identified by an unique identifier.
 data Conflict identifier a = Conflict (identifier, a) (NonEmpty (identifier, a))
-  deriving (Show)
+  deriving (Show, Generic)
+
+-- TODO: clean up
+instance ToJSON (Conflict FilePath ByteString) where
+  toJSON (Conflict (k0, v0) rest) =
+    let c' = (k0, decodeUtf8 @Text v0, fmap (second $ decodeUtf8 @Text) rest)
+     in toJSON c'
+
+instance FromJSON (Conflict FilePath ByteString) where
+  parseJSON x = do
+    (k0, v0, rest) <- parseJSON x
+    pure $ Conflict (k0, encodeUtf8 @Text v0) $ fmap (second $ encodeUtf8 @Text) rest
 
 resolveConflicts ::
   Ord k =>

@@ -42,6 +42,7 @@ library
     , tagged
     , text
     , time
+    , aeson
 
   default-extensions:
     DeriveGeneric

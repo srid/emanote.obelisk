@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Backend where
 
@@ -49,20 +50,20 @@ backend =
                       writeLBS $ has @Aeson.ToJSON emApi $ Aeson.encode resp
                 BackendRoute_WebSocket :/ () -> do
                   runWebSocketsSnap $ \pc -> do
-                    conn <- WS.acceptRequest pc 
-                    forever $ do 
-                      dm <- WS.receiveDataMessage conn 
-                      let m = Aeson.eitherDecode $ case dm of 
-                            WS.Text v _ -> v 
-                            WS.Binary v -> v 
-                      case m of 
-                        Right req -> do 
+                    conn <- WS.acceptRequest pc
+                    forever $ do
+                      dm <- WS.receiveDataMessage conn
+                      let m = Aeson.eitherDecode $ case dm of
+                            WS.Text v _ -> v
+                            WS.Binary v -> v
+                      case m of
+                        Right req -> do
                           r <- mkTaggedResponse req $ handleEmanoteApi zk
-                          case r of 
-                            Left err -> error $ toText err  -- TODO
+                          case r of
+                            Left err -> error $ toText err -- TODO
                             Right rsp ->
-                              WS.sendDataMessage conn $ 
-                                WS.Text (Aeson.encode rsp) Nothing 
+                              WS.sendDataMessage conn $
+                                WS.Text (Aeson.encode rsp) Nothing
                         Left err -> error $ toText err --TODO
                       pure ()
             ),
@@ -71,6 +72,9 @@ backend =
 
 handleEmanoteApi :: MonadIO m => Zk -> EmanoteApi a -> m a
 handleEmanoteApi Zk {..} = \case
-  EmanoteApi_GetNotes -> do 
+  EmanoteApi_GetNotes -> do
     liftIO $ putStrLn $ "GetNotes!"
     Map.keys <$> TInc.readValue _zk_zettels
+  EmanoteApi_Note wId -> do
+    liftIO $ putStrLn $ "Note! " <> show wId
+    Map.lookup wId <$> TInc.readValue _zk_zettels
