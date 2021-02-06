@@ -13,7 +13,9 @@ import Common.Route
 import Control.Monad.Fix (MonadFix)
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Constraint.Extras (Has)
+import Data.Tagged
 import qualified Data.Text as T
+import Emanote.Markdown.WikiLink
 import Obelisk.Configs (getTextConfig)
 import Obelisk.Frontend
 import Obelisk.Generated.Static (static)
@@ -72,6 +74,7 @@ startEmanoteNet endpoint f = do
   pure ()
 
 app ::
+  forall t m js.
   ( DomBuilder t m,
     MonadHold t m,
     MonadFix m,
@@ -95,7 +98,7 @@ app = do
             el "ul" $ do
               forM_ notes $ \wId -> do
                 el "li" $ do
-                  routeLink (FrontendRoute_Note :/ wId) $ text (show wId)
+                  routeLink (FrontendRoute_Note :/ wId) $ text $ untag wId
     FrontendRoute_Note -> do
       req <- fmap EmanoteApi_Note <$> askRoute
       resp <- requestingDynamic req
@@ -105,8 +108,18 @@ app = do
           Right Nothing -> text "No such note"
           Right (Just (Left conflict)) -> text (show conflict)
           Right (Just (Right (_fp, Left parseErr))) -> text (show parseErr)
-          Right (Just (Right (_fp, Right doc))) ->
-            PR.elPandoc PR.defaultConfig doc
+          Right (Just (Right (_fp, Right doc))) -> do
+            let cfg =
+                  PR.defaultConfig
+                    { PR._config_renderLink = linkRender
+                    }
+            PR.elPandoc cfg doc
+  where
+    linkRender defRender url _minner =
+      fromMaybe defRender $ do
+        let mtitle = Nothing -- TODO
+        (_lbl, wId) <- parseWikiLinkUrl mtitle url
+        pure $ routeLink (FrontendRoute_Note :/ wId) $ text $ untag wId
 
 -- | Like @requesting@, but takes a Dynamic instead.
 requestingDynamic ::

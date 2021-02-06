@@ -11,17 +11,14 @@
 
 module Common.Route where
 
-{- -- You will probably want these imports for composing Encoders.
-import Prelude hiding (id, (.))
 import Control.Category
--}
-
-import Data.Functor.Identity
+import Control.Lens.Combinators
+import Data.Tagged
 import Data.Text (Text)
 import Emanote.Markdown.WikiLink (WikiLinkID)
 import Obelisk.Route
 import Obelisk.Route.TH
-import Relude
+import Relude hiding (id, (.))
 
 data BackendRoute :: * -> * where
   -- | Used to handle unparseable routes.
@@ -50,8 +47,13 @@ fullRouteEncoder =
     )
     ( \case
         FrontendRoute_Main -> PathEnd $ unitEncoder mempty
-        FrontendRoute_Note -> PathSegment "note" $ readShowEncoder
+        FrontendRoute_Note -> PathSegment "note" $ singlePathSegmentEncoder . wikiLinkEncoder
     )
+  where
+    wikiLinkEncoder :: (Applicative check, Applicative parse) => Encoder check parse WikiLinkID Text
+    wikiLinkEncoder = viewEncoder wikiLinkIso
+    wikiLinkIso :: Iso' WikiLinkID Text
+    wikiLinkIso = iso untag Tagged
 
 concat
   <$> mapM
