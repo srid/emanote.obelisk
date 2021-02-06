@@ -24,6 +24,7 @@ library
                , containers
   exposed-modules:
     Frontend
+    Frontend.App
   default-extensions:
     DeriveGeneric
     FlexibleContexts
