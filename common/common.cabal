@@ -11,6 +11,7 @@ library
                , text
                , reflex-gadt-api 
                , constraints-extras 
+               , dependent-sum-template
                , aeson-gadt-th 
                , aeson
                , relude

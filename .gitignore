@@ -13,3 +13,5 @@ result
 result-*
 tags
 TAGS
+node_modules
+*-compiled.css

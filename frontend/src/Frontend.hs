@@ -35,24 +35,26 @@ frontend :: Frontend (R FrontendRoute)
 frontend =
   Frontend
     { _frontend_head = do
+        elAttr "meta" ("content" =: "text/html; charset=utf-8" <> "http-equiv" =: "Content-Type") blank
+        elAttr "meta" ("content" =: "width=device-width, initial-scale=1" <> "name" =: "viewport") blank
         el "title" $ text "Emanote"
-        elAttr "link" ("href" =: static @"main.css" <> "type" =: "text/css" <> "rel" =: "stylesheet") blank,
+        elAttr "link" ("href" =: static @"style/main-compiled.css" <> "type" =: "text/css" <> "rel" =: "stylesheet") blank,
       _frontend_body = do
-        el "h1" $ text "Emanote"
-        let enc :: Either Text ValidEnc = checkEncoder fullRouteEncoder
-        route <- getTextConfig "common/route"
-        case (enc, route) of
-          (Left _, _) -> error "Routes are invalid!"
-          (_, Nothing) -> error "Couldn't load common/route config file"
-          (Right validEnc, Just host) -> do
-            let _endpoint =
-                  Right $
-                    T.replace "http" "ws" host
-                      <> renderBackendRoute validEnc (BackendRoute_WebSocket :/ ())
-                endpoint =
-                  Left $ renderBackendRoute validEnc (BackendRoute_Api :/ ())
-            r :: Dynamic t (R FrontendRoute) <- askRoute
-            startEmanoteNet endpoint $ flip runRoutedT r app
+        divClass "min-h-screen bg-gray-100 md:container mx-auto px-4" $ do
+          let enc :: Either Text ValidEnc = checkEncoder fullRouteEncoder
+          route <- getTextConfig "common/route"
+          case (enc, route) of
+            (Left _, _) -> error "Routes are invalid!"
+            (_, Nothing) -> error "Couldn't load common/route config file"
+            (Right validEnc, Just host) -> do
+              let _endpoint =
+                    Right $
+                      T.replace "http" "ws" host
+                        <> renderBackendRoute validEnc (BackendRoute_WebSocket :/ ())
+                  endpoint =
+                    Left $ renderBackendRoute validEnc (BackendRoute_Api :/ ())
+              r :: Dynamic t (R FrontendRoute) <- askRoute
+              startEmanoteNet endpoint $ flip runRoutedT r app
     }
 
 startEmanoteNet ::
@@ -77,6 +79,7 @@ app ::
   forall t m js.
   ( DomBuilder t m,
     MonadHold t m,
+    PostBuild t m,
     MonadFix m,
     Prerender js t m,
     RouteToUrl (R FrontendRoute) m,
@@ -89,6 +92,7 @@ app ::
 app = do
   subRoute_ $ \case
     FrontendRoute_Main -> do
+      el "h1" $ text "Emanote"
       req <- fmap (const EmanoteApi_GetNotes) <$> askRoute
       resp <- requestingDynamic req
       widgetHold_ (text "Loading...") $
@@ -100,6 +104,10 @@ app = do
                 el "li" $ do
                   routeLink (FrontendRoute_Note :/ wId) $ text $ untag wId
     FrontendRoute_Note -> do
+      routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
+      el "h1" $ do
+        r <- askRoute
+        dynText $ untag <$> r
       req <- fmap EmanoteApi_Note <$> askRoute
       resp <- requestingDynamic req
       widgetHold_ (text "Loading...") $
@@ -113,7 +121,8 @@ app = do
                   PR.defaultConfig
                     { PR._config_renderLink = linkRender
                     }
-            PR.elPandoc cfg doc
+            divClass "bg-gray-100 rounded-xl" $ do
+              PR.elPandoc cfg doc
   where
     linkRender defRender url _minner =
       fromMaybe defRender $ do
@@ -130,6 +139,8 @@ requestingDynamic reqDyn = do
   r0 <- sample $ current reqDyn
   let rE = updated reqDyn
   requesting <=< fmap switchPromptlyDyn $ do
+    -- NOTE: For some strange reason, the getPotBuild must be inside prerender;
+    -- otherwise it won't fire for consumption by `requestiong`.
     prerender (pure never) $ do
       pb <- getPostBuild
       pure $ leftmost [r0 <$ pb, rE]

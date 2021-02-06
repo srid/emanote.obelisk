@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  h1 {
+    @apply text-3xl text-red-800;
+  }
+  h2 {
+    @apply text-xl;
+  }
+  a {
+    @apply text-purple-800 font-bold;
+  }
+  a:hover {
+    @apply hover:text-pink-500;
+  }
+
+  /* Pandoc */
+  div.pandoc div.checkbox {
+    display: inline;
+  }
+}
