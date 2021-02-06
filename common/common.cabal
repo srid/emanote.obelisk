@@ -17,6 +17,8 @@ library
                , relude
                , reflex-dom-core
                , emanote-core
+               , tagged
+               , lens
   exposed-modules:
     Common.Api
     Common.Route

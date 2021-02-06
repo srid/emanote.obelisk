@@ -15,6 +15,7 @@ import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
 import Control.Monad.Combinators (manyTill)
 import Data.Tagged (Tagged (..))
+import Emanote.Zk.Type (ParserError)
 import Relude
 import qualified Text.Megaparsec as M
 import qualified Text.Megaparsec.Char as M
@@ -23,8 +24,6 @@ import Text.Pandoc.Definition (Pandoc (..))
 import qualified Text.Parsec as P
 
 type Parser = FilePath -> Text -> Either ParserError Pandoc
-
-type ParserError = Tagged "ParserError" Text
 
 -- | Parse Markdown document, along with the YAML metadata block in it.
 --

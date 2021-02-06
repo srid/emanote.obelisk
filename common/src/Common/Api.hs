@@ -14,7 +14,7 @@ import Data.Aeson.GADT.TH (deriveJSONGADT)
 import Data.Constraint.Extras.TH (deriveArgDict)
 import Data.GADT.Show.TH (deriveGShow)
 import qualified Emanote.Markdown.WikiLink as EM
-import Emanote.Zk (Zettel)
+import Emanote.Zk.Type (Zettel)
 import Reflex.Dom.Core
 import Relude
 

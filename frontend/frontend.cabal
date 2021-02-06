@@ -19,6 +19,8 @@ library
                , reflex-gadt-api
                , constraints-extras
                , aeson
+               , tagged 
+               , reflex-dom-pandoc
   exposed-modules:
     Frontend
   default-extensions:

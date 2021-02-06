@@ -15,6 +15,7 @@ library
     Emanote.Graph
     Emanote.Graph.Patch
     Emanote.Markdown.WikiLink
+    Emanote.Zk.Type
 
   build-depends:
     , algebraic-graphs
