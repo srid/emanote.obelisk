@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  h1 {
+    @apply text-3xl text-red-800 pb-2;
+  }
+  h2 {
+    @apply text-xl;
+  }
+  a {
+    @apply text-purple-800 font-bold;
+  }
+  a:hover {
+    @apply hover:text-pink-500;
+  }
+
+  /* Pandoc */
+  div.pandoc div.checkbox {
+    @apply inline-block pr-1 place-content-center;
+  }
+  div.pandoc p {
+    @apply pb-2;
+  }
+  div.pandoc ul {
+    @apply pl-4 pb-2 list-outside;
+  }
+  div.pandoc li {
+    @apply list-disc ;
+  }
+  div.pandoc h2, div.pandoc h3 {
+    @apply underline pb-2;
+  }
+}

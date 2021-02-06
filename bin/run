@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -xe
+nix-shell -p entr -p goreman --run 'goreman start'

@@ -38,7 +38,7 @@ frontend =
         elAttr "meta" ("content" =: "text/html; charset=utf-8" <> "http-equiv" =: "Content-Type") blank
         elAttr "meta" ("content" =: "width=device-width, initial-scale=1" <> "name" =: "viewport") blank
         el "title" $ text "Emanote"
-        elAttr "link" ("href" =: static @"style/main-compiled.css" <> "type" =: "text/css" <> "rel" =: "stylesheet") blank,
+        elAttr "link" ("href" =: static @"main-compiled.css" <> "type" =: "text/css" <> "rel" =: "stylesheet") blank,
       _frontend_body = do
         divClass "min-h-screen bg-gray-100 md:container mx-auto px-4" $ do
           let enc :: Either Text ValidEnc = checkEncoder fullRouteEncoder
