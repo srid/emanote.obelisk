@@ -13,6 +13,7 @@ import Common.Route
 import Control.Monad.Fix (MonadFix)
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Constraint.Extras (Has)
+import qualified Data.Map.Strict as Map
 import Data.Tagged
 import qualified Data.Text as T
 import Emanote.Markdown.WikiLink
@@ -124,11 +125,14 @@ app = do
             divClass "bg-gray-100 rounded-xl" $ do
               PR.elPandoc cfg doc
   where
-    linkRender defRender url _minner =
+    linkRender defRender url attrs _minner =
       fromMaybe defRender $ do
-        let mtitle = Nothing -- TODO
-        (_lbl, wId) <- parseWikiLinkUrl mtitle url
-        pure $ routeLink (FrontendRoute_Note :/ wId) $ text $ untag wId
+        (lbl, wId) <- parseWikiLinkUrl (Map.lookup "title" attrs) url
+        pure $ do
+          let r = constDyn $ FrontendRoute_Note :/ wId
+              attr = constDyn $ "title" =: show lbl
+          routeLinkDynAttr attr r $ do
+            text $ untag wId
 
 -- | Like @requesting@, but takes a Dynamic instead.
 requestingDynamic ::

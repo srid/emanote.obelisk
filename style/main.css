@@ -32,4 +32,14 @@
   div.pandoc h2, div.pandoc h3 {
     @apply underline pb-2;
   }
+
+  /* Linking */
+  a[title="link:branch"]::after {
+    @apply text-gray-500;
+    content: "#";
+  }
+  a[title="link:tag"]::before {
+    @apply text-gray-500;
+    content: "#";
+  }
 }
