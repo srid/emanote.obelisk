@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 set -xe
 cd style
-nix-shell -A shell --run "ls main.css | entr sh -c \"npm run compile\""
+nix-shell -p entr --run \
+    'nix-shell -A shell --run "ls main.css | entr sh -c \"npm run compile\""'
