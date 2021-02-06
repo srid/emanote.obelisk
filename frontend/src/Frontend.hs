@@ -21,6 +21,7 @@ import Obelisk.Route
 import Obelisk.Route.Frontend
 import Reflex.Dom.Core
 import Reflex.Dom.GadtApi
+import qualified Reflex.Dom.Pandoc as PR
 import Relude
 
 type ValidEnc = Encoder Identity Identity (R (FullRoute BackendRoute FrontendRoute)) PageName
@@ -101,7 +102,11 @@ app = do
       widgetHold_ (text "Loading...") $
         ffor resp $ \case
           Left err -> text (show err)
-          Right mnote -> el "tt" $ text $ show mnote
+          Right Nothing -> text "No such note"
+          Right (Just (Left conflict)) -> text (show conflict)
+          Right (Just (Right (_fp, Left parseErr))) -> text (show parseErr)
+          Right (Just (Right (_fp, Right doc))) ->
+            PR.elPandoc PR.defaultConfig doc
 
 -- | Like @requesting@, but takes a Dynamic instead.
 requestingDynamic ::

@@ -1,8 +1,8 @@
 {
   "owner": "srid",
   "repo": "reflex-dom-pandoc",
-  "branch": "master",
+  "branch": "remove-raw-classes",
   "private": false,
-  "rev": "c4d2508399d562ede92c6e25814f1f222b5ec9ed",
-  "sha256": "05s71r9vrx7wsv8vgl3mlph3v16jkdb207g7zrcw6g00gmvlm9a0"
+  "rev": "a158c1e9e0e1e13e985c42486417e5a6bc2fc45d",
+  "sha256": "1fjaqv6anl3a3pkyy1r06s581cy05ankvnnx5fj6bxs5aflxh5q8"
 }
