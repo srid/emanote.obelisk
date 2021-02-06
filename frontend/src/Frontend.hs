@@ -48,14 +48,15 @@ frontend =
             (Left _, _) -> error "Routes are invalid!"
             (_, Nothing) -> error "Couldn't load common/route config file"
             (Right validEnc, Just host) -> do
-              let _endpoint =
+              -- Websocket vs API endpoint. Pick one, during experimental phase.
+              let endpoint =
                     Right $
                       T.replace "http" "ws" host
                         <> renderBackendRoute validEnc (BackendRoute_WebSocket :/ ())
-                  endpoint =
+                  _endpoint =
                     Left $ renderBackendRoute validEnc (BackendRoute_Api :/ ())
               r :: Dynamic t (R FrontendRoute) <- askRoute
-              startEmanoteNet endpoint $ flip runRoutedT r app
+              startEmanoteNet endpoint $ runRoutedT app r
     }
 
 startEmanoteNet ::

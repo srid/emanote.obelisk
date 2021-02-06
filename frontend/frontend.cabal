@@ -21,6 +21,7 @@ library
                , aeson
                , tagged 
                , reflex-dom-pandoc
+               , containers
   exposed-modules:
     Frontend
   default-extensions:
