@@ -69,65 +69,88 @@ app = do
     FrontendRoute_Note -> do
       req <- fmap EmanoteApi_Note <$> askRoute
       resp <- App.requestingDynamic req
-      widgetHold_ loader $
-        ffor resp $ \case
-          Left err -> text (show err)
-          Right (note :: Note) -> do
-            divClass "grid gap-4 grid-cols-6" $ do
-              divClass "col-start-1 col-span-2" $ do
-                divClass "linksBox p-2" $ do
-                  routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
-                divClass "linksBox animated" $ do
-                  renderLinkContexts "Uplinks" (_note_uplinks note) $ \ctx -> do
-                    divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                      renderPandoc ctx
-                divClass "linksBox animated" $ do
-                  renderLinkContexts "Backlinks" (_note_backlinks note) $ \ctx -> do
-                    divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                      renderPandoc ctx
-              divClass "col-start-3 col-span-4" $ do
-                el "h1" $ do
-                  r <- askRoute
-                  dynText $ untag <$> r
-                case _note_zettel note of
-                  Nothing -> text "No such note"
-                  Just z ->
-                    case z of
-                      Left conflict -> text (show conflict)
-                      Right (_fp, Left parseErr) -> text (show parseErr)
-                      Right (_fp, Right doc) -> do
+      waiting <-
+        holdDyn True $
+          leftmost
+            [ fmap (const True) (updated req),
+              fmap (const False) resp
+            ]
+      elDynClass "div" (ffor waiting $ bool "" "animate-pulse") $ do
+        mresp <- maybeDyn =<< holdDyn Nothing (Just <$> resp)
+        dyn_ $
+          ffor mresp $ \case
+            Nothing -> loader
+            Just resp' -> do
+              eresp <- eitherDyn resp'
+              dyn_ $
+                ffor eresp $ \case
+                  Left errDyn -> dynText $ show <$> errDyn
+                  Right (noteDyn :: Dynamic t Note) -> do
+                    divClass "grid gap-4 grid-cols-6" $ do
+                      divClass "col-start-1 col-span-2" $ do
+                        divClass "linksBox p-2" $ do
+                          routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
+                        divClass "linksBox animated" $ do
+                          renderLinkContexts "Uplinks" (_note_uplinks <$> noteDyn) $ \ctx -> do
+                            divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                              dyn_ $ renderPandoc <$> ctx
+                        divClass "linksBox animated" $ do
+                          renderLinkContexts "Backlinks" (_note_backlinks <$> noteDyn) $ \ctx -> do
+                            divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                              dyn_ $ renderPandoc <$> ctx
+                      divClass "col-start-3 col-span-4" $ do
+                        el "h1" $ do
+                          r <- askRoute
+                          dynText $ untag <$> r
+                        mzettel <- maybeDyn $ _note_zettel <$> noteDyn
+                        dyn_ $
+                          ffor mzettel $ \case
+                            Nothing -> text "No such note"
+                            Just zDyn -> do
+                              ez <- eitherDyn zDyn
+                              dyn_ $
+                                ffor ez $ \case
+                                  Left conflict -> dynText $ show <$> conflict
+                                  Right (fmap snd -> v) -> do
+                                    edoc <- eitherDyn v
+                                    dyn_ $
+                                      ffor edoc $ \case
+                                        Left parseErr -> dynText $ show <$> parseErr
+                                        Right docDyn -> do
+                                          dyn_ $ renderPandoc <$> docDyn
                         divClass "" $ do
-                          renderPandoc doc
-                divClass "" $ do
-                  divClass "linksBox animated" $ do
-                    renderLinkContexts "Downlinks" (_note_downlinks note) $ \ctx -> do
-                      divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                        renderPandoc ctx
-                  -- Adding a bg color only to workaround a font jankiness
-                  divClass "linksBox overflow-auto max-h-60 bg-gray-200" $ do
-                    renderLinkContexts "Orphans" (_note_orphans note) (const blank)
-              divClass "col-start-1 col-span-6 place-self-center text-gray-400 border-t-2" $ do
-                text "Powered by "
-                elAttr "a" ("href" =: "https://github.com/srid/emanote") $
-                  text "Emanote"
+                          divClass "linksBox animated" $ do
+                            renderLinkContexts "Downlinks" (_note_downlinks <$> noteDyn) $ \ctx -> do
+                              divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                                dyn_ $ renderPandoc <$> ctx
+                          -- Adding a bg color only to workaround a font jankiness
+                          divClass "linksBox overflow-auto max-h-60 bg-gray-200" $ do
+                            renderLinkContexts "Orphans" (_note_orphans <$> noteDyn) (const blank)
+                      divClass "col-start-1 col-span-6 place-self-center text-gray-400 border-t-2" $ do
+                        text "Powered by "
+                        elAttr "a" ("href" =: "https://github.com/srid/emanote") $
+                          text "Emanote"
   where
     renderLinkContexts name ls ctxW = do
       divClass name $ do
         elClass "h2" "header w-full pl-2 pt-2 pb-2 font-serif bg-green-100 " $ text name
         divClass "p-2" $ do
-          if null ls
-            then text "None"
-            else forM_ ls $ \l@LinkContext {..} -> do
+          void $
+            simpleList ls $ \lDyn -> do
               divClass "pt-1" $ do
                 divClass "linkheader" $
-                  renderLinkContext ("class" =: "text-green-700") l
-                ctxW _linkcontext_ctx
-    renderLinkContext attrs LinkContext {..} = do
+                  renderLinkContext ("class" =: "text-green-700") lDyn
+                ctxW $ _linkcontext_ctx <$> lDyn
+    renderLinkContext attrs lDyn = do
       routeLinkDynAttr
-        (constDyn $ "title" =: show _linkcontext_label <> attrs)
-        (constDyn $ FrontendRoute_Note :/ _linkcontext_id)
+        ( ffor lDyn $ \LinkContext {..} ->
+            "title" =: show _linkcontext_label <> attrs
+        )
+        ( ffor lDyn $ \LinkContext {..} ->
+            FrontendRoute_Note :/ _linkcontext_id
+        )
         $ do
-          text $ untag _linkcontext_id
+          dynText $ untag . _linkcontext_id <$> lDyn
 
     -- FIXME: doesn't work
     _iconBack :: DomBuilder t m1 => m1 ()
