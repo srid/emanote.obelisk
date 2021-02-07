@@ -4,7 +4,7 @@ To run locally,
 1. Run `bin/css` by side (to build CSS)
 1. Run `ob run`
 
-Go to <http://localhost:3000/> (This will soon get replaced with Obelisk's WIP backend running at 8000)
+Go to <http://localhost:8000/> 
 
 To do a full **build**:
 

@@ -5,7 +5,6 @@ module Backend where
 
 import Common.Api
 import Common.Route
-import Control.Concurrent.Async (race_)
 import qualified Data.Aeson as Aeson
 import Data.Constraint.Extras
 import qualified Data.Map.Strict as Map
@@ -17,7 +16,6 @@ import qualified Emanote.Graph as G
 import qualified Emanote.Graph.Patch as GP
 import Emanote.Markdown.WikiLink
 import qualified Emanote.Markdown.WikiLink as W
-import qualified Emanote.WebServer as WS
 import Emanote.Zk (Zk (..))
 import Network.WebSockets as WS
 import Network.WebSockets.Snap as WS
@@ -39,40 +37,37 @@ backend =
               maybe (error $ "Missing " <> k) (T.strip . decodeUtf8) $ Map.lookup k configs
             notesDir = toString $ getCfg "backend/notesDir"
         Emanote.emanoteMainWith notesDir $ \zk -> do
-          race_
-            (WS.run notesDir zk)
-            ( serve $ \case
-                BackendRoute_Missing :/ () -> do
-                  modifyResponse $ setResponseStatus 404 "Missing"
-                  writeText "Not found"
-                BackendRoute_Api :/ () -> do
-                  mreq <- Aeson.decode <$> readRequestBody 16384
-                  case mreq of
-                    Nothing -> do
-                      modifyResponse $ setResponseStatus 400 "Bad Request"
-                      writeText "Bad response!"
-                    Just (Some emApi :: Some EmanoteApi) -> do
-                      resp <- handleEmanoteApi zk emApi
-                      writeLBS $ has @Aeson.ToJSON emApi $ Aeson.encode resp
-                BackendRoute_WebSocket :/ () -> do
-                  runWebSocketsSnap $ \pc -> do
-                    conn <- WS.acceptRequest pc
-                    forever $ do
-                      dm <- WS.receiveDataMessage conn
-                      let m = Aeson.eitherDecode $ case dm of
-                            WS.Text v _ -> v
-                            WS.Binary v -> v
-                      case m of
-                        Right req -> do
-                          r <- mkTaggedResponse req $ handleEmanoteApi zk
-                          case r of
-                            Left err -> error $ toText err -- TODO
-                            Right rsp ->
-                              WS.sendDataMessage conn $
-                                WS.Text (Aeson.encode rsp) Nothing
-                        Left err -> error $ toText err --TODO
-                      pure ()
-            ),
+          serve $ \case
+            BackendRoute_Missing :/ () -> do
+              modifyResponse $ setResponseStatus 404 "Missing"
+              writeText "Not found"
+            BackendRoute_Api :/ () -> do
+              mreq <- Aeson.decode <$> readRequestBody 16384
+              case mreq of
+                Nothing -> do
+                  modifyResponse $ setResponseStatus 400 "Bad Request"
+                  writeText "Bad response!"
+                Just (Some emApi :: Some EmanoteApi) -> do
+                  resp <- handleEmanoteApi zk emApi
+                  writeLBS $ has @Aeson.ToJSON emApi $ Aeson.encode resp
+            BackendRoute_WebSocket :/ () -> do
+              runWebSocketsSnap $ \pc -> do
+                conn <- WS.acceptRequest pc
+                forever $ do
+                  dm <- WS.receiveDataMessage conn
+                  let m = Aeson.eitherDecode $ case dm of
+                        WS.Text v _ -> v
+                        WS.Binary v -> v
+                  case m of
+                    Right req -> do
+                      r <- mkTaggedResponse req $ handleEmanoteApi zk
+                      case r of
+                        Left err -> error $ toText err -- TODO
+                        Right rsp ->
+                          WS.sendDataMessage conn $
+                            WS.Text (Aeson.encode rsp) Nothing
+                    Left err -> error $ toText err --TODO
+                  pure (),
       _backend_routeEncoder = fullRouteEncoder
     }
 

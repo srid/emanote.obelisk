@@ -12,7 +12,6 @@ library
     Emanote.Markdown
     Emanote.Markdown.WikiLink.Parser
     Emanote.Pipeline
-    Emanote.WebServer
     Emanote.Zk
     Emanote
     Reflex.TIncremental
@@ -33,7 +32,6 @@ library
     , fsnotify
     , uri-encode
     , megaparsec
-    , mustache
     , optparse-applicative
     , pandoc-link-context
     , pandoc-types
@@ -44,13 +42,11 @@ library
     , reflex-dom-pandoc
     , reflex-fsnotify
     , relude
-    , scotty
     , shower
     , stm
     , tagged
     , text
     , time
-    , wai-middleware-static
     , with-utf8
 
   default-extensions:

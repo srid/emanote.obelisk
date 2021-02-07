@@ -6,17 +6,12 @@ module Emanote where
 import Control.Concurrent.Async (race_)
 import Control.Concurrent.STM (newTChanIO, readTChan, writeTChan)
 import qualified Emanote.Pipeline as Pipeline
-import qualified Emanote.WebServer as WS
 import Emanote.Zk (Zk)
 import qualified Emanote.Zk as Zk
 import Options.Applicative
 import Reflex (Reflex (never))
 import Reflex.Host.Headless (runHeadlessApp)
 import Relude
-
-emanoteMain :: FilePath -> IO ()
-emanoteMain inputDir = do
-  emanoteMainWith inputDir (WS.run inputDir)
 
 emanoteMainWith :: FilePath -> (Zk -> IO ()) -> IO ()
 emanoteMainWith inputDir f = do
