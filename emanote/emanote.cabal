@@ -1,23 +1,22 @@
-cabal-version:      2.4
-name:               emanote
-version:            0.1.0.0
-license:            AGPL-3.0-only
-author:             Sridhar Ratnakumar
-maintainer:         srid@srid.ca
+cabal-version: 2.4
+name:          emanote
+version:       0.1.0.0
+license:       AGPL-3.0-only
+author:        Sridhar Ratnakumar
+maintainer:    srid@srid.ca
 
 library
   hs-source-dirs:     src
   exposed-modules:
+    Emanote
     Emanote.FileSystem
     Emanote.Markdown
     Emanote.Markdown.WikiLink.Parser
     Emanote.Pipeline
     Emanote.Zk
-    Emanote
     Reflex.TIncremental
 
   build-depends:
-    , emanote-core
     , algebraic-graphs
     , async
     , base
@@ -27,10 +26,10 @@ library
     , containers
     , data-default
     , directory
+    , emanote-core
     , filepath
     , filepattern
     , fsnotify
-    , uri-encode
     , megaparsec
     , optparse-applicative
     , pandoc-link-context
@@ -47,9 +46,11 @@ library
     , tagged
     , text
     , time
+    , uri-encode
     , with-utf8
 
   default-extensions:
+    NoImplicitPrelude
     DeriveGeneric
     FlexibleContexts
     LambdaCase
@@ -60,7 +61,6 @@ library
     TupleSections
     TypeApplications
     ViewPatterns
-    NoImplicitPrelude
 
   ghc-options:
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns

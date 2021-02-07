@@ -6,6 +6,8 @@ To run locally,
 
 Go to <http://localhost:8000/> 
 
+Edit `config/backend/notesDir` to run on your notebook.
+
 To do a full **build**:
 
 ```

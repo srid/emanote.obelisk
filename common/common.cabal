@@ -1,29 +1,33 @@
-name: common
-version: 0.1
-cabal-version: >= 1.2
-build-type: Simple
+name:          common
+version:       0.1
+cabal-version: >=1.2
+build-type:    Simple
 
 library
-  hs-source-dirs: src
-  build-depends: base
-               , obelisk-route
-               , mtl
-               , text
-               , reflex-gadt-api 
-               , constraints-extras 
-               , dependent-sum-template
-               , aeson-gadt-th 
-               , aeson
-               , relude
-               , reflex-dom-core
-               , emanote-core
-               , tagged
-               , lens
-               , pandoc-types
+  hs-source-dirs:     src
+  build-depends:
+      aeson
+    , aeson-gadt-th
+    , base
+    , constraints-extras
+    , dependent-sum-template
+    , emanote-core
+    , lens
+    , mtl
+    , obelisk-route
+    , pandoc-types
+    , reflex-dom-core
+    , reflex-gadt-api
+    , relude
+    , tagged
+    , text
+
   exposed-modules:
     Common.Api
     Common.Route
+
   default-extensions:
+    NoImplicitPrelude
     DeriveGeneric
     FlexibleContexts
     LambdaCase
@@ -34,7 +38,7 @@ library
     TupleSections
     TypeApplications
     ViewPatterns
-    NoImplicitPrelude
 
-
-  ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wincomplete-record-updates -O -fno-show-valid-hole-fits
+  ghc-options:
+    -Wall -Wredundant-constraints -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -O -fno-show-valid-hole-fits
