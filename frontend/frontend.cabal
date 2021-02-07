@@ -27,6 +27,7 @@ library
   exposed-modules:
     Frontend
     Frontend.App
+    Frontend.Static
 
   default-extensions:
     NoImplicitPrelude

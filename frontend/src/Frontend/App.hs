@@ -40,8 +40,8 @@ runApp ::
     MonadFix m,
     Prerender js t m
   ) =>
-  RoutedT t (R FrontendRoute) (RequesterT t EmanoteApi (Either Text) m) () ->
-  m ()
+  RoutedT t (R FrontendRoute) (RequesterT t EmanoteApi (Either Text) m) a ->
+  m a
 runApp f = do
   withEncoderAndRoute $ \validEnc host -> do
     -- Websocket vs API endpoint. Pick one, during experimental phase.
@@ -55,22 +55,22 @@ runApp f = do
     startEmanoteNet endpoint $ runRoutedT f r
 
 startEmanoteNet ::
-  forall js t m.
+  forall js t m a.
   ( Prerender js t m,
     MonadHold t m,
     MonadFix m,
     Has FromJSON EmanoteApi,
-    forall a. ToJSON (EmanoteApi a)
+    forall x. ToJSON (EmanoteApi x)
   ) =>
   Either ApiEndpoint WebSocketEndpoint ->
-  EmanoteNet t m () ->
-  m ()
+  EmanoteNet t m a ->
+  m a
 startEmanoteNet endpoint f = do
-  rec (_, requests) <- runRequesterT f responses
+  rec (x, requests) <- runRequesterT f responses
       responses <- case endpoint of
         Left xhr -> performXhrRequests xhr (requests :: Event t (RequesterData EmanoteApi))
         Right ws -> performWebSocketRequests ws (requests :: Event t (RequesterData EmanoteApi))
-  pure ()
+  pure x
 
 -- | Like @requesting@, but takes a Dynamic instead.
 requestingDynamic ::
