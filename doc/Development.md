@@ -6,9 +6,9 @@ To run locally,
 
 Go to <http://localhost:8000/> 
 
-Edit `config/backend/notesDir` to run on your notebook.
+Edit `config/backend/notesDir` to run on your own notebook.
 
-To do a full **build**:
+To do a **full build** (uses GHCJS to produce JS that runs entirely on browser):
 
 ```
 nix-build -A exe

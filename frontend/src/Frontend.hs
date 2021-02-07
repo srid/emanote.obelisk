@@ -34,7 +34,7 @@ frontend =
         el "title" $ text "Emanote"
         elAttr "link" ("href" =: static @"main-compiled.css" <> "type" =: "text/css" <> "rel" =: "stylesheet") blank,
       _frontend_body = do
-        divClass "min-h-screen bg-gray-100 md:container mx-auto px-4" $ do
+        divClass "min-h-screen md:container mx-auto px-4" $ do
           App.runApp app
     }
 
@@ -73,34 +73,18 @@ app = do
         ffor resp $ \case
           Left err -> text (show err)
           Right (note :: Note) -> do
-            let renderLinkContext LinkContext {..} = do
-                  routeLinkDynAttr
-                    (constDyn $ "title" =: show _linkcontext_label)
-                    (constDyn $ FrontendRoute_Note :/ _linkcontext_id)
-                    $ do
-                      text $ untag _linkcontext_id
             divClass "grid gap-4 grid-cols-6" $ do
               divClass "col-start-1 col-span-2" $ do
-                divClass "linksBox" $ do
+                divClass "linksBox p-2" $ do
                   routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
                 divClass "linksBox animated" $ do
-                  el "h2" $ text "Uplinks"
-                  elClass "ul" "uplinks " $ do
-                    forM_ (_note_uplinks note) $ \l@LinkContext {..} -> do
-                      el "li" $ do
-                        iconBack
-                        renderLinkContext l
-                        divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                          renderPandoc _linkcontext_ctx
+                  renderLinkContexts "Uplinks" (_note_uplinks note) $ \ctx -> do
+                    divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                      renderPandoc ctx
                 divClass "linksBox animated" $ do
-                  el "h2" $ text "Backlinks"
-                  elClass "ul" "backlinks " $ do
-                    forM_ (_note_backlinks note) $ \l@LinkContext {..} -> do
-                      el "li" $ do
-                        renderLinkContext l
-                        divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                          renderPandoc _linkcontext_ctx
-
+                  renderLinkContexts "Backlinks" (_note_backlinks note) $ \ctx -> do
+                    divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                      renderPandoc ctx
               divClass "col-start-3 col-span-4" $ do
                 el "h1" $ do
                   r <- askRoute
@@ -112,29 +96,42 @@ app = do
                       Left conflict -> text (show conflict)
                       Right (_fp, Left parseErr) -> text (show parseErr)
                       Right (_fp, Right doc) -> do
-                        divClass "bg-gray-100 rounded-xl" $ do
+                        divClass "" $ do
                           renderPandoc doc
                 divClass "" $ do
                   divClass "linksBox animated" $ do
-                    el "h2" $ text "Downlinks"
-                    elClass "ul" "downlinks " $ do
-                      forM_ (_note_downlinks note) $ \l@LinkContext {..} -> do
-                        el "li" $ do
-                          renderLinkContext l
-                          divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                            renderPandoc _linkcontext_ctx
+                    renderLinkContexts "Downlinks" (_note_downlinks note) $ \ctx -> do
+                      divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                        renderPandoc ctx
                   -- Adding a bg color only to workaround a font jankiness
-                  divClass "linksBox overflow-auto h-60 bg-gray-200" $ do
-                    el "h2" $ text "Orphans"
-                    el "p" $ text "Consider linking to these from your hub notes"
-                    elClass "ul" "orphans " $ do
-                      forM_ (_note_orphans note) $ \l@LinkContext {..} -> do
-                        el "li" $ do
-                          renderLinkContext l
+                  divClass "linksBox overflow-auto max-h-60 bg-gray-200" $ do
+                    renderLinkContexts "Orphans" (_note_orphans note) (const blank)
+              divClass "col-start-1 col-span-6 place-self-center text-gray-400 border-t-2" $ do
+                text "Powered by "
+                elAttr "a" ("href" =: "https://github.com/srid/emanote") $
+                  text "Emanote"
   where
+    renderLinkContexts name ls ctxW = do
+      divClass name $ do
+        elClass "h2" "header w-full pl-2 pt-2 pb-2 font-serif bg-green-100 " $ text name
+        divClass "p-2" $ do
+          if null ls
+            then text "None"
+            else forM_ ls $ \l@LinkContext {..} -> do
+              divClass "pt-1" $ do
+                divClass "linkheader" $
+                  renderLinkContext ("class" =: "text-green-700") l
+                ctxW _linkcontext_ctx
+    renderLinkContext attrs LinkContext {..} = do
+      routeLinkDynAttr
+        (constDyn $ "title" =: show _linkcontext_label <> attrs)
+        (constDyn $ FrontendRoute_Note :/ _linkcontext_id)
+        $ do
+          text $ untag _linkcontext_id
+
     -- FIXME: doesn't work
-    iconBack :: DomBuilder t m1 => m1 ()
-    iconBack = do
+    _iconBack :: DomBuilder t m1 => m1 ()
+    _iconBack = do
       elAttr
         "svg"
         ( "xmlns" =: "http://www.w3.org/2000/svg"
