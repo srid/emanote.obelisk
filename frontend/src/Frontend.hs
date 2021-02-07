@@ -58,17 +58,21 @@ app = do
   fmap join $
     subRoute $ \case
       FrontendRoute_Main -> do
-        el "h1" $ text "Emanote"
-        req <- fmap (const EmanoteApi_GetNotes) <$> askRoute
-        resp <- App.requestingDynamic req
-        widgetHold_ loader $
-          ffor resp $ \case
-            Left (err :: Text) -> text (show err)
-            Right notes -> do
-              el "ul" $ do
-                forM_ notes $ \wId -> do
-                  el "li" $ do
-                    routeLink (FrontendRoute_Note :/ wId) $ text $ untag wId
+        divClass "grid gap-4 grid-cols-3" $ do
+          divClass "col-start-2" $ do
+            el "h1" $ text "Emanote"
+            elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
+              text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display the list of notes."
+            req <- fmap (const EmanoteApi_GetNotes) <$> askRoute
+            resp <- App.requestingDynamic req
+            widgetHold_ loader $
+              ffor resp $ \case
+                Left (err :: Text) -> text (show err)
+                Right notes -> do
+                  el "ul" $ do
+                    forM_ notes $ \wId -> do
+                      el "li" $ do
+                        routeLink (FrontendRoute_Note :/ wId) $ text $ untag wId
         pure $ constDyn Nothing
       FrontendRoute_Note -> do
         req <- fmap EmanoteApi_Note <$> askRoute
