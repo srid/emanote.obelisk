@@ -47,7 +47,7 @@ fullRouteEncoder =
     )
     ( \case
         FrontendRoute_Main -> PathEnd $ unitEncoder mempty
-        FrontendRoute_Note -> PathSegment "note" $ singlePathSegmentEncoder . wikiLinkEncoder
+        FrontendRoute_Note -> PathSegment "-" $ singlePathSegmentEncoder . wikiLinkEncoder
     )
   where
     wikiLinkEncoder :: (Applicative check, Applicative parse) => Encoder check parse WikiLinkID Text
