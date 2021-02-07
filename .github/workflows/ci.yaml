@@ -1,7 +1,8 @@
 name: "CI"
+# Disabling, because build is pretty slow
 on:
-  pull_request:
-  push:
+  #pull_request:
+  #push:
 jobs:
   build:
     runs-on: ubuntu-latest

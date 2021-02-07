@@ -10,7 +10,10 @@
     @apply text-xl;
   }
   a {
-    @apply text-purple-800 font-bold;
+    @apply text-purple-800;
+  }
+  a[title^="link:"] {
+    @apply font-bold;
   }
   a:hover {
     @apply hover:text-pink-500;
