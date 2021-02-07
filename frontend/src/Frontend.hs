@@ -3,7 +3,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Frontend where
@@ -68,7 +67,6 @@ app = do
                 el "li" $ do
                   routeLink (FrontendRoute_Note :/ wId) $ text $ untag wId
     FrontendRoute_Note -> do
-      routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
       req <- fmap EmanoteApi_Note <$> askRoute
       resp <- App.requestingDynamic req
       widgetHold_ loader $
@@ -77,6 +75,8 @@ app = do
           Right (note :: Note) -> do
             divClass "grid gap-4 grid-cols-6" $ do
               divClass "col-start-1 col-span-2" $ do
+                divClass "linksBox" $ do
+                  routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
                 divClass "linksBox" $ do
                   el "h2" $ text "Uplinks"
                   elClass "ul" "uplinks " $ do
