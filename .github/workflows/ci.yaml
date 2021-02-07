@@ -17,5 +17,7 @@ jobs:
             binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ryantrinkle.com-1:JJiAKaRv9mWgpVAz8dwewnZe0AzzEAzPkagE9SP5NWI=
             binary-caches-parallel-connections = 40
             sandbox = true
-      - name: Build GHCJS 🔧
-        run: nix-build -j4 -A exe
+      - name: "Full build (GHCJS) 🔧"
+        run: |
+          (cd style && nix-shell -p entry --run 'nix-shell -A shell --run "ls main.css | entr sh -c \"npm run compile\""')
+          nix-build -j4 -A exe

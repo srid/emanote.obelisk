@@ -6,4 +6,8 @@ Write plain-text notes, but do complex things with it, such as to eman**a**te a 
 
 ---
 
-See ./doc/Development.md
+Goals: large **private** Zettelkastens, **dynamic** navigation, simplicity, performance.
+
+Non-goals: static site publishing, theming.
+
+Trying out: See `./doc/Development.md`
