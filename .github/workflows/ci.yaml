@@ -19,5 +19,5 @@ jobs:
             sandbox = true
       - name: "Full build (GHCJS) 🔧"
         run: |
-          (cd style && nix-shell -p entry --run 'nix-shell -A shell --run "ls main.css | entr sh -c \"npm run compile\""')
+          (cd style && nix-shell -p entr --run 'nix-shell -A shell --run "ls main.css | entr sh -c \"npm run compile\""')
           nix-build -j4 -A exe

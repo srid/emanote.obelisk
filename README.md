@@ -10,4 +10,6 @@ Goals: large **private** Zettelkastens, **dynamic** navigation, simplicity, perf
 
 Non-goals: static site publishing, theming.
 
+Maybe-goals: use `emanote-core` as a core library in neuron.
+
 Trying out: See `./doc/Development.md`
