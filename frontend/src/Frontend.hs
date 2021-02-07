@@ -69,9 +69,6 @@ app = do
                   routeLink (FrontendRoute_Note :/ wId) $ text $ untag wId
     FrontendRoute_Note -> do
       routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
-      el "h1" $ do
-        r <- askRoute
-        dynText $ untag <$> r
       req <- fmap EmanoteApi_Note <$> askRoute
       resp <- App.requestingDynamic req
       widgetHold_ loader $
@@ -80,22 +77,28 @@ app = do
           Right (note :: Note) -> do
             divClass "grid gap-4 grid-cols-6" $ do
               divClass "col-start-1 col-span-2" $ do
-                el "h2" $ text "Uplinks"
-                elClass "ul" "uplinks " $ do
-                  forM_ (_note_uplinks note) $ \LinkContext {..} -> do
-                    el "li" $ do
-                      routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
-                      divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                        renderPandoc _linkcontext_ctx
-                el "h2" $ text "Backlinks"
-                elClass "ul" "backlinks " $ do
-                  forM_ (_note_backlinks note) $ \LinkContext {..} -> do
-                    el "li" $ do
-                      routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
-                      divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                        renderPandoc _linkcontext_ctx
+                divClass "linksBox" $ do
+                  el "h2" $ text "Uplinks"
+                  elClass "ul" "uplinks " $ do
+                    forM_ (_note_uplinks note) $ \LinkContext {..} -> do
+                      el "li" $ do
+                        iconBack
+                        routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                        divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                          renderPandoc _linkcontext_ctx
+                divClass "linksBox" $ do
+                  el "h2" $ text "Backlinks"
+                  elClass "ul" "backlinks " $ do
+                    forM_ (_note_backlinks note) $ \LinkContext {..} -> do
+                      el "li" $ do
+                        routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                        divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                          renderPandoc _linkcontext_ctx
 
               divClass "col-start-3 col-span-4" $ do
+                el "h1" $ do
+                  r <- askRoute
+                  dynText $ untag <$> r
                 case _note_zettel note of
                   Nothing -> text "No such note"
                   Just z ->
@@ -105,14 +108,41 @@ app = do
                       Right (_fp, Right doc) -> do
                         divClass "bg-gray-100 rounded-xl" $ do
                           renderPandoc doc
-                el "h2" $ text "Downlinks"
-                elClass "ul" "downlinks " $ do
-                  forM_ (_note_downlinks note) $ \LinkContext {..} -> do
-                    el "li" $ do
-                      routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
-                      divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                        renderPandoc _linkcontext_ctx
+                divClass "" $ do
+                  divClass "linksBox" $ do
+                    el "h2" $ text "Downlinks"
+                    elClass "ul" "downlinks " $ do
+                      forM_ (_note_downlinks note) $ \LinkContext {..} -> do
+                        el "li" $ do
+                          routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                          divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                            renderPandoc _linkcontext_ctx
+                  divClass "linksBox" $ do
+                    el "h2" $ text "Orphans"
+                    elClass "ul" "orphans " $ do
+                      forM_ (_note_orphans note) $ \LinkContext {..} -> do
+                        el "li" $ do
+                          routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
   where
+    -- FIXME: doesn't work
+    iconBack :: DomBuilder t m1 => m1 ()
+    iconBack = do
+      elAttr
+        "svg"
+        ( "xmlns" =: "http://www.w3.org/2000/svg"
+            <> "fill" =: "none"
+            <> "viewBox" =: "0 0 24 24"
+            <> "stroke" =: "currentColor"
+        )
+        $ do
+          elAttr
+            "path"
+            ( "stroke-linecap" =: "round"
+                <> "stroke-linejoin" =: "round"
+                <> "stroke-width" =: "2"
+                <> "d" =: "M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"
+            )
+            blank
     renderPandoc doc = do
       let cfg =
             PR.defaultConfig

@@ -3,5 +3,3 @@
 - All files under input directory (except the template) is statically served.
 
 ## Builtin filters
-
-- [[Directory Hierarchy]] (disabled; not recommended)

@@ -8,16 +8,13 @@ import Reflex (PatchMap)
 import Reflex.TIncremental (TIncremental)
 import qualified Reflex.TIncremental as TInc
 import Relude
-import qualified Text.Mustache.Types as Mustache
 
 data Zk = Zk
   { _zk_zettels :: TIncremental (PatchMap M.WikiLinkID Zettel),
-    _zk_graph :: TIncremental PatchGraph,
-    _zk_htmlTemplate :: TIncremental (PatchMap FilePath (Either Text Mustache.Template))
+    _zk_graph :: TIncremental PatchGraph
   }
 
 run :: Zk -> IO ()
 run Zk {..} = do
   void $ forkIO $ TInc.runTIncremental _zk_zettels
-  void $ forkIO $ TInc.runTIncremental _zk_graph
-  TInc.runTIncremental _zk_htmlTemplate
+  TInc.runTIncremental _zk_graph

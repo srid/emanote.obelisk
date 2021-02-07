@@ -26,6 +26,7 @@ library
                , some
                , snap-core
                , pandoc-types
+               , emanote-core
   exposed-modules:
     Backend
   default-extensions:

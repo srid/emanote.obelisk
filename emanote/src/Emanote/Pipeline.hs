@@ -8,9 +8,7 @@ import Data.Conflict (Conflict (..))
 import qualified Data.Conflict as Conflict
 import qualified Data.Conflict.Patch as Conflict
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 import Data.Tagged (Tagged (..))
-import qualified Data.Text as T
 import Emanote.FileSystem (PathContent (..), directoryTreeIncremental)
 import qualified Emanote.Graph as G
 import qualified Emanote.Graph.Patch as G
@@ -21,8 +19,7 @@ import Reflex
 import Reflex.Host.Headless (MonadHeadlessApp)
 import qualified Reflex.TIncremental as TInc
 import Relude
-import System.FilePath (dropExtension, takeDirectory, takeExtension, takeFileName)
-import qualified Text.Mustache as Mustache
+import System.FilePath (dropExtension, takeExtension, takeFileName)
 import Text.Pandoc.Definition (Pandoc)
 import qualified Text.Pandoc.LinkContext as LC
 
@@ -42,14 +39,9 @@ run inputDir = do
         pandocOut
           & pipeExtractLinks
           & pipeGraph
-      htmlOut =
-        input
-          & pipeFilterFilename ("templates/" `isPrefixOf`)
-          & pipeLoadTemplates
   Zk
     <$> TInc.mirrorIncremental pandocOut
     <*> TInc.mirrorIncremental graphOut
-    <*> TInc.mirrorIncremental htmlOut
 
 pipeFilesOnly :: Reflex t => Incremental t (PatchMap FilePath PathContent) -> Incremental t (PatchMap FilePath ByteString)
 pipeFilesOnly =
@@ -81,72 +73,6 @@ pipeFilterFilename selectFile =
    in unsafeMapIncremental
         (Map.mapMaybeWithKey f)
         (PatchMap . Map.mapMaybeWithKey f . unPatchMap)
-
--- | Treat directories as .md files.
---
--- - Create `$folder.md` (unless exists) for every $folder containing .md files
--- - Append the text `Child of #[[Parent Folder]]` at the end of every .md file
-_pipeInjectDirZettels :: Reflex t => Incremental t (PatchMap FilePath ByteString) -> Incremental t (PatchMap FilePath ByteString)
-_pipeInjectDirZettels inc = do
-  inc
-    & unsafeMapIncrementalWithOldValue
-      (fmapTargetAsPatch createFiles)
-      createFiles
-    & unsafeMapIncremental
-      (fmapTargetAsPatch $ const writeConn)
-      writeConn
-  where
-    fmapTargetAsPatch f =
-      Map.mapMaybe id . unPatchMap . f Map.empty . PatchMap . fmap Just
-    -- Phase 1: just create an empty $folder.md if it doesn't exist.
-    createFiles :: Map FilePath ByteString -> PatchMap FilePath ByteString -> PatchMap FilePath ByteString
-    createFiles oldVal p =
-      let parZettels =
-            Set.toList $
-              Set.fromList $
-                -- TODO: Handle deletion
-                flip concatMap (Map.keys $ patchMapNewElementsMap p) $ \fp ->
-                  parents fp <&> \x -> (x, x <> ".md")
-          parZettelsPatch :: PatchMap FilePath ByteString =
-            PatchMap $
-              Map.fromList $
-                fforMaybe parZettels $ \(dirP, fp) ->
-                  case Map.lookup fp oldVal of
-                    Just _ ->
-                      Nothing
-                    Nothing ->
-                      Just (fp, Just $ dirZettelBody dirP)
-       in p <> parZettelsPatch
-    dirZettelBody p =
-      "Directory Zettel, autocreated for folder: `" <> encodeUtf8 p <> "`"
-    parents fp =
-      let par = takeDirectory fp
-       in ffor (inits $ toString <$> T.splitOn "/" (toText par)) $ \s ->
-            if null s
-              then "index"
-              else toString (T.intercalate "/" $ fmap toText s)
-    -- Phase 2: inject wiki-links to effectuate graph connections.
-    writeConn :: PatchMap FilePath ByteString -> PatchMap FilePath ByteString
-    writeConn p =
-      PatchMap $
-        flip Map.mapWithKey (unPatchMap p) $ \fp -> \case
-          Nothing -> Nothing
-          Just s ->
-            let parID = takeFileName (takeDirectory fp)
-             in Just $ s <> if parID == "." then connSuffix "index" else connSuffix parID
-    connSuffix (target :: String) =
-      -- Apparently \n doesn't work here
-      encodeUtf8 $ "\r\r" <> "Folder: #[[" <> target <> "]]"
-
-pipeLoadTemplates ::
-  Reflex t =>
-  Incremental t (PatchMap FilePath ByteString) ->
-  Incremental t (PatchMap FilePath (Either Text Mustache.Template))
-pipeLoadTemplates =
-  let f n = first (show @Text) . Mustache.compileTemplate n . decodeUtf8 @Text @ByteString
-   in unsafeMapIncremental
-        (Map.mapWithKey f)
-        (PatchMap . Map.mapWithKey (fmap . f) . unPatchMap)
 
 pipeFlattenFsTree ::
   forall t v.
