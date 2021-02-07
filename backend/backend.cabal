@@ -25,6 +25,7 @@ library
                , aeson
                , some
                , snap-core
+               , pandoc-types
   exposed-modules:
     Backend
   default-extensions:

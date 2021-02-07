@@ -1,9 +1,11 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GADTs #-}
 
 module Emanote.Markdown.WikiLink where
 
+import Data.Aeson
 import Data.Tagged (Tagged (..))
 import qualified Data.Text as T
 import qualified Network.URI.Encode as URIEncode
@@ -34,7 +36,7 @@ data WikiLinkLabel
     WikiLinkLabel_Branch
   | -- | #[[Foo]]
     WikiLinkLabel_Tag
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic, ToJSON, FromJSON)
 
 -- | The AST "surrounding" a wiki-link (any link, in fact)
 type WikiLinkContext = [Block]

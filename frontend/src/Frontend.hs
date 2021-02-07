@@ -8,7 +8,7 @@
 
 module Frontend where
 
-import Common.Api (EmanoteApi (..))
+import Common.Api
 import Common.Route
 import Control.Monad.Fix (MonadFix)
 import qualified Data.Map.Strict as Map
@@ -59,10 +59,10 @@ app = do
       el "h1" $ text "Emanote"
       req <- fmap (const EmanoteApi_GetNotes) <$> askRoute
       resp <- App.requestingDynamic req
-      widgetHold_ (text "Loading...") $
+      widgetHold_ loader $
         ffor resp $ \case
           Left (err :: Text) -> text (show err)
-          Right notes ->
+          Right notes -> do
             el "ul" $ do
               forM_ notes $ \wId -> do
                 el "li" $ do
@@ -74,20 +74,51 @@ app = do
         dynText $ untag <$> r
       req <- fmap EmanoteApi_Note <$> askRoute
       resp <- App.requestingDynamic req
-      widgetHold_ (text "Loading...") $
+      widgetHold_ loader $
         ffor resp $ \case
           Left err -> text (show err)
-          Right Nothing -> text "No such note"
-          Right (Just (Left conflict)) -> text (show conflict)
-          Right (Just (Right (_fp, Left parseErr))) -> text (show parseErr)
-          Right (Just (Right (_fp, Right doc))) -> do
-            let cfg =
-                  PR.defaultConfig
-                    { PR._config_renderLink = linkRender
-                    }
-            divClass "bg-gray-100 rounded-xl" $ do
-              PR.elPandoc cfg doc
+          Right (note :: Note) -> do
+            divClass "grid gap-4 grid-cols-6" $ do
+              divClass "col-start-1 col-span-2" $ do
+                el "h2" $ text "Uplinks"
+                elClass "ul" "uplinks " $ do
+                  forM_ (_note_uplinks note) $ \LinkContext {..} -> do
+                    el "li" $ do
+                      routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                      divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                        renderPandoc _linkcontext_ctx
+                el "h2" $ text "Backlinks"
+                elClass "ul" "backlinks " $ do
+                  forM_ (_note_backlinks note) $ \LinkContext {..} -> do
+                    el "li" $ do
+                      routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                      divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                        renderPandoc _linkcontext_ctx
+
+              divClass "col-start-3 col-span-4" $ do
+                case _note_zettel note of
+                  Nothing -> text "No such note"
+                  Just z ->
+                    case z of
+                      Left conflict -> text (show conflict)
+                      Right (_fp, Left parseErr) -> text (show parseErr)
+                      Right (_fp, Right doc) -> do
+                        divClass "bg-gray-100 rounded-xl" $ do
+                          renderPandoc doc
+                el "h2" $ text "Downlinks"
+                elClass "ul" "downlinks " $ do
+                  forM_ (_note_downlinks note) $ \LinkContext {..} -> do
+                    el "li" $ do
+                      routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                      divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                        renderPandoc _linkcontext_ctx
   where
+    renderPandoc doc = do
+      let cfg =
+            PR.defaultConfig
+              { PR._config_renderLink = linkRender
+              }
+      PR.elPandoc cfg doc
     linkRender defRender url attrs _minner =
       fromMaybe defRender $ do
         (lbl, wId) <- parseWikiLinkUrl (Map.lookup "title" attrs) url
@@ -96,3 +127,7 @@ app = do
               attr = constDyn $ "title" =: show lbl
           routeLinkDynAttr attr r $ do
             text $ untag wId
+
+loader :: DomBuilder t m => m ()
+loader = do
+  text "Loading..."

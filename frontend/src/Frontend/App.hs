@@ -74,6 +74,7 @@ startEmanoteNet endpoint f = do
 
 -- | Like @requesting@, but takes a Dynamic instead.
 requestingDynamic ::
+  forall a t m js.
   (Requester t m, MonadSample t m, Prerender js t m) =>
   Dynamic t (Request m a) ->
   m (Event t (Response m a))

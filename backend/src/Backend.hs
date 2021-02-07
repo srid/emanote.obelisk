@@ -9,9 +9,14 @@ import Control.Concurrent.Async (race_)
 import qualified Data.Aeson as Aeson
 import Data.Constraint.Extras
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import Data.Some
 import Data.Text as T
 import qualified Emanote
+import qualified Emanote.Graph as G
+import qualified Emanote.Graph.Patch as GP
+import Emanote.Markdown.WikiLink
+import qualified Emanote.Markdown.WikiLink as W
 import qualified Emanote.WebServer as WS
 import Emanote.Zk (Zk (..))
 import Network.WebSockets as WS
@@ -23,6 +28,7 @@ import Reflex.Dom.GadtApi.WebSocket
 import qualified Reflex.TIncremental as TInc
 import Relude
 import Snap.Core
+import Text.Pandoc.Definition (Block, Pandoc (..))
 
 backend :: Backend BackendRoute FrontendRoute
 backend =
@@ -75,6 +81,35 @@ handleEmanoteApi Zk {..} = \case
   EmanoteApi_GetNotes -> do
     liftIO $ putStrLn $ "GetNotes!"
     Map.keys <$> TInc.readValue _zk_zettels
-  EmanoteApi_Note wId -> do
-    liftIO $ putStrLn $ "Note! " <> show wId
-    Map.lookup wId <$> TInc.readValue _zk_zettels
+  EmanoteApi_Note wikiLinkID -> do
+    liftIO $ putStrLn $ "Note! " <> show wikiLinkID
+    zs <- TInc.readValue _zk_zettels
+    let mz = Map.lookup wikiLinkID zs
+    graph <- TInc.readValue _zk_graph
+    let mkLinkCtxList f = do
+          let ls = uncurry mkLinkContext <$> G.connectionsOf f wikiLinkID graph
+          -- Sort in reverse order so that daily notes (calendar) are pushed down.
+          sortOn Down ls
+        wikiLinkUrl = renderWikiLinkUrl wikiLinkID
+        orphans =
+          let getVertices = GP.patchedGraphVertexSet (isJust . flip Map.lookup zs) . G.unGraph
+              indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
+              all' = getVertices graph
+              unindexed = all' `Set.difference` indexed
+           in Set.toList unindexed <&> mkLinkContext (WikiLinkLabel_Unlabelled, mempty)
+    let note =
+          Note
+            wikiLinkID
+            wikiLinkUrl
+            mz
+            -- TODO: Refactor using enum/dmap/gadt
+            (mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l) && not (W.isBranch l))) -- Backlinks (sans uplinks / downlinks)
+            (mkLinkCtxList W.isBranch) -- Downlinks
+            (mkLinkCtxList W.isParent) -- Uplinks
+            orphans
+    pure note
+  where
+    mkLinkContext :: (WikiLinkLabel, [Block]) -> WikiLinkID -> LinkContext
+    mkLinkContext (_linkcontext_label, Pandoc mempty -> _linkcontext_ctx) _linkcontext_id =
+      let _linkcontext_url = renderWikiLinkUrl _linkcontext_id
+       in LinkContext {..}

@@ -19,6 +19,7 @@ library
                , emanote-core
                , tagged
                , lens
+               , pandoc-types
   exposed-modules:
     Common.Api
     Common.Route
