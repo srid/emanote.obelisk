@@ -73,25 +73,31 @@ app = do
         ffor resp $ \case
           Left err -> text (show err)
           Right (note :: Note) -> do
+            let renderLinkContext LinkContext {..} = do
+                  routeLinkDynAttr
+                    (constDyn $ "title" =: show _linkcontext_label)
+                    (constDyn $ FrontendRoute_Note :/ _linkcontext_id)
+                    $ do
+                      text $ untag _linkcontext_id
             divClass "grid gap-4 grid-cols-6" $ do
               divClass "col-start-1 col-span-2" $ do
                 divClass "linksBox" $ do
                   routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
-                divClass "linksBox" $ do
+                divClass "linksBox animated" $ do
                   el "h2" $ text "Uplinks"
                   elClass "ul" "uplinks " $ do
-                    forM_ (_note_uplinks note) $ \LinkContext {..} -> do
+                    forM_ (_note_uplinks note) $ \l@LinkContext {..} -> do
                       el "li" $ do
                         iconBack
-                        routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                        renderLinkContext l
                         divClass "opacity-50 hover:opacity-100 text-sm" $ do
                           renderPandoc _linkcontext_ctx
-                divClass "linksBox" $ do
+                divClass "linksBox animated" $ do
                   el "h2" $ text "Backlinks"
                   elClass "ul" "backlinks " $ do
-                    forM_ (_note_backlinks note) $ \LinkContext {..} -> do
+                    forM_ (_note_backlinks note) $ \l@LinkContext {..} -> do
                       el "li" $ do
-                        routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                        renderLinkContext l
                         divClass "opacity-50 hover:opacity-100 text-sm" $ do
                           renderPandoc _linkcontext_ctx
 
@@ -109,20 +115,20 @@ app = do
                         divClass "bg-gray-100 rounded-xl" $ do
                           renderPandoc doc
                 divClass "" $ do
-                  divClass "linksBox" $ do
+                  divClass "linksBox animated" $ do
                     el "h2" $ text "Downlinks"
                     elClass "ul" "downlinks " $ do
-                      forM_ (_note_downlinks note) $ \LinkContext {..} -> do
+                      forM_ (_note_downlinks note) $ \l@LinkContext {..} -> do
                         el "li" $ do
-                          routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                          renderLinkContext l
                           divClass "opacity-50 hover:opacity-100 text-sm" $ do
                             renderPandoc _linkcontext_ctx
                   divClass "linksBox" $ do
                     el "h2" $ text "Orphans"
                     elClass "ul" "orphans " $ do
-                      forM_ (_note_orphans note) $ \LinkContext {..} -> do
+                      forM_ (_note_orphans note) $ \l@LinkContext {..} -> do
                         el "li" $ do
-                          routeLink (FrontendRoute_Note :/ _linkcontext_id) $ text $ untag _linkcontext_id
+                          renderLinkContext l
   where
     -- FIXME: doesn't work
     iconBack :: DomBuilder t m1 => m1 ()
