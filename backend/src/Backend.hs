@@ -6,10 +6,10 @@ module Backend where
 import Common.Api
 import Common.Route
 import qualified Data.Aeson as Aeson
-import Data.Constraint.Extras
+import Data.Constraint.Extras (has)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
-import Data.Some
+import Data.Some (Some (..))
 import Data.Text as T
 import qualified Emanote
 import qualified Emanote.Graph as G
@@ -18,11 +18,11 @@ import Emanote.Markdown.WikiLink
 import qualified Emanote.Markdown.WikiLink as W
 import Emanote.Zk (Zk (..))
 import Network.WebSockets as WS
-import Network.WebSockets.Snap as WS
-import Obelisk.Backend
+import Network.WebSockets.Snap as WS (runWebSocketsSnap)
+import Obelisk.Backend (Backend (..))
 import Obelisk.ExecutableConfig.Lookup (getConfigs)
 import Obelisk.Route
-import Reflex.Dom.GadtApi.WebSocket
+import Reflex.Dom.GadtApi.WebSocket (mkTaggedResponse)
 import qualified Reflex.TIncremental as TInc
 import Relude
 import Snap.Core
@@ -75,7 +75,7 @@ handleEmanoteApi :: MonadIO m => Zk -> EmanoteApi a -> m a
 handleEmanoteApi Zk {..} = \case
   EmanoteApi_GetNotes -> do
     liftIO $ putStrLn $ "GetNotes!"
-    Map.keys <$> TInc.readValue _zk_zettels
+    sortOn Down . Map.keys <$> TInc.readValue _zk_zettels
   EmanoteApi_Note wikiLinkID -> do
     liftIO $ putStrLn $ "Note! " <> show wikiLinkID
     zs <- TInc.readValue _zk_zettels

@@ -157,26 +157,6 @@ app = do
         )
         $ do
           dynText $ untag . _linkcontext_id <$> lDyn
-
-    -- FIXME: doesn't work
-    _iconBack :: DomBuilder t m1 => m1 ()
-    _iconBack = do
-      elAttr
-        "svg"
-        ( "xmlns" =: "http://www.w3.org/2000/svg"
-            <> "fill" =: "none"
-            <> "viewBox" =: "0 0 24 24"
-            <> "stroke" =: "currentColor"
-        )
-        $ do
-          elAttr
-            "path"
-            ( "stroke-linecap" =: "round"
-                <> "stroke-linejoin" =: "round"
-                <> "stroke-width" =: "2"
-                <> "d" =: "M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"
-            )
-            blank
     renderPandoc doc = do
       let cfg =
             PR.defaultConfig
@@ -194,4 +174,7 @@ app = do
 
 loader :: DomBuilder t m => m ()
 loader = do
-  text "Loading..."
+  divClass "grid grid-cols-3 ml-0 pl-0 content-evenly" $ do
+    divClass "col-start-1 col-span-3 h-16" blank
+    divClass "col-start-2 col-span-1 place-self-center p-4 h-full bg-black text-white rounded" $
+      text "Loading..."
