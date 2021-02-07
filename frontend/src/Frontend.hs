@@ -123,8 +123,10 @@ app = do
                           renderLinkContext l
                           divClass "opacity-50 hover:opacity-100 text-sm" $ do
                             renderPandoc _linkcontext_ctx
-                  divClass "linksBox" $ do
+                  -- Adding a bg color only to workaround a font jankiness
+                  divClass "linksBox overflow-auto h-60 bg-gray-200" $ do
                     el "h2" $ text "Orphans"
+                    el "p" $ text "Consider linking to these from your hub notes"
                     elClass "ul" "orphans " $ do
                       forM_ (_note_orphans note) $ \l@LinkContext {..} -> do
                         el "li" $ do
