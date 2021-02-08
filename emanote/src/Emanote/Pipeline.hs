@@ -42,6 +42,7 @@ run inputDir = do
   Zk
     <$> TInc.mirrorIncremental pandocOut
     <*> TInc.mirrorIncremental graphOut
+    <*> newTVarIO 0
 
 pipeFilesOnly :: Reflex t => Incremental t (PatchMap FilePath PathContent) -> Incremental t (PatchMap FilePath ByteString)
 pipeFilesOnly =

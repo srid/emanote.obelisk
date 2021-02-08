@@ -75,7 +75,8 @@ app = do
                   dyn_ $
                     ffor eresp $ \case
                       Left err -> dynText err
-                      Right notesDyn -> do
+                      Right result -> do
+                        let notesDyn = snd <$> result
                         el "ul" $ do
                           void $
                             simpleList notesDyn $ \xDyn -> do
@@ -107,11 +108,15 @@ app = do
                 dyn_ $
                   ffor eresp $ \case
                     Left errDyn -> dynText $ show <$> errDyn
-                    Right (noteDyn :: Dynamic t Note) -> do
+                    Right result -> do
+                      let noteDyn = snd <$> result
+                          revDyn = fst <$> result
                       divClass "grid gap-4 grid-cols-6" $ do
                         divClass "col-start-1 col-span-2" $ do
-                          divClass "linksBox p-2" $ do
-                            routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
+                          divClass "" $ do
+                            routeLink (FrontendRoute_Main :/ ()) $
+                              elClass "button" "font-serif border-1 p-2 text-white rounded-b place-self-center border-green-700 bg-green-400 hover:opacity-70" $
+                                text "Home"
                           renderLinkContexts "Uplinks" (_note_uplinks <$> noteDyn) $ \ctx -> do
                             divClass "opacity-50 hover:opacity-100 text-sm" $ do
                               dyn_ $ renderPandoc <$> ctx
@@ -145,6 +150,9 @@ app = do
                           text "Powered by "
                           elAttr "a" ("href" =: "https://github.com/srid/emanote") $
                             text "Emanote"
+                          text " ("
+                          el "tt" $ dynText $ show . untag <$> revDyn
+                          text " changes since boot)"
         fmap (Just . untag) <$> askRoute
   where
     renderLinkContexts name ls ctxW = do

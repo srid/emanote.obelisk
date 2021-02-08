@@ -22,14 +22,15 @@ readValue :: (MonadIO m) => TIncremental p -> m (PatchTarget p)
 readValue TIncremental {..} =
   liftIO $ atomically $ STM.readTVar _tincremental_value
 
-runTIncremental :: Patch p => TIncremental p -> IO ()
-runTIncremental TIncremental {..} = do
+runTIncremental :: Patch p => STM () -> TIncremental p -> IO ()
+runTIncremental postUpdateF TIncremental {..} = do
   forever $
     atomically $ do
       p <- STM.readTChan _tincremental_patches
       x <- STM.readTVar _tincremental_value
-      whenJust (apply p x) $ \x' ->
+      whenJust (apply p x) $ \x' -> do
         STM.writeTVar _tincremental_value $! x'
+        postUpdateF
 
 -- | Mirror the Incremental outside of the Reflex network. Use `runTIncremental`
 -- to effectuate the mirror.
