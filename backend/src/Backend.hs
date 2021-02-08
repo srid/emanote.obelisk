@@ -83,8 +83,9 @@ handleEmanoteApi Zk {..} = \case
               all' = getVertices graph
            in all' `Set.difference` indexed
     pure $
-      Map.keys zs <&> \z ->
-        bool (LinkStatus_Connected, z) (LinkStatus_Orphaned, z) $ Set.member z orphans
+      sort $
+        Map.keys zs <&> \z ->
+          bool (LinkStatus_Connected, z) (LinkStatus_Orphaned, z) $ Set.member z orphans
   EmanoteApi_Note wikiLinkID -> do
     liftIO $ putStrLn $ "Note! " <> show wikiLinkID
     zs <- TInc.readValue _zk_zettels
