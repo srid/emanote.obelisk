@@ -83,8 +83,7 @@ app = do
                                 dyn_ $
                                   ffor (fst <$> xDyn) $ \case
                                     LinkStatus_Orphaned ->
-                                      elClass "span" "border-2 bg-red-600 text-white ml-2 text-sm rounded" $
-                                        text "Orphaned"
+                                      orphanLabel
                                     _ -> blank
         pure $ constDyn Nothing
       FrontendRoute_Note -> do
@@ -140,11 +139,10 @@ app = do
                                           Left parseErr -> dynText $ show <$> parseErr
                                           Right docDyn -> do
                                             dyn_ $ renderPandoc <$> docDyn
-                          divClass "" $ do
-                            divClass "linksBox animated" $ do
-                              renderLinkContexts "Downlinks" (_note_downlinks <$> noteDyn) $ \ctx -> do
-                                divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                                  dyn_ $ renderPandoc <$> ctx
+                          divClass "linksBox animated" $ do
+                            renderLinkContexts "Downlinks" (_note_downlinks <$> noteDyn) $ \ctx -> do
+                              divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                                dyn_ $ renderPandoc <$> ctx
                         divClass "col-start-1 col-span-6 place-self-center text-gray-400 border-t-2" $ do
                           text "Powered by "
                           elAttr "a" ("href" =: "https://github.com/srid/emanote") $
@@ -187,6 +185,11 @@ app = do
               attr = constDyn $ "title" =: show lbl
           routeLinkDynAttr attr r $ do
             text $ untag wId
+
+orphanLabel :: DomBuilder t m => m ()
+orphanLabel = do
+  elClass "span" "border-2 bg-red-600 text-white ml-2 text-sm rounded" $
+    text "Orphaned"
 
 loader :: DomBuilder t m => m ()
 loader = do
