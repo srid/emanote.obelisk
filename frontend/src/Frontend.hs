@@ -12,6 +12,7 @@ import Common.Route
 import Control.Monad.Fix (MonadFix)
 import qualified Data.Map.Strict as Map
 import Data.Tagged
+import qualified Data.Text as T
 import Emanote.Markdown.WikiLink
 import qualified Frontend.App as App
 import qualified Frontend.Static as Static
@@ -111,14 +112,12 @@ app = do
                         divClass "col-start-1 col-span-2" $ do
                           divClass "linksBox p-2" $ do
                             routeLink (FrontendRoute_Main :/ ()) $ text "Back to /"
-                          divClass "linksBox animated" $ do
-                            renderLinkContexts "Uplinks" (_note_uplinks <$> noteDyn) $ \ctx -> do
-                              divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                                dyn_ $ renderPandoc <$> ctx
-                          divClass "linksBox animated" $ do
-                            renderLinkContexts "Backlinks" (_note_backlinks <$> noteDyn) $ \ctx -> do
-                              divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                                dyn_ $ renderPandoc <$> ctx
+                          renderLinkContexts "Uplinks" (_note_uplinks <$> noteDyn) $ \ctx -> do
+                            divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                              dyn_ $ renderPandoc <$> ctx
+                          renderLinkContexts "Backlinks" (_note_backlinks <$> noteDyn) $ \ctx -> do
+                            divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                              dyn_ $ renderPandoc <$> ctx
                         divClass "col-start-3 col-span-4" $ do
                           el "h1" $ do
                             r <- askRoute
@@ -139,10 +138,9 @@ app = do
                                           Left parseErr -> dynText $ show <$> parseErr
                                           Right docDyn -> do
                                             dyn_ $ renderPandoc <$> docDyn
-                          divClass "linksBox animated" $ do
-                            renderLinkContexts "Downlinks" (_note_downlinks <$> noteDyn) $ \ctx -> do
-                              divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                                dyn_ $ renderPandoc <$> ctx
+                          renderLinkContexts "Downlinks" (_note_downlinks <$> noteDyn) $ \ctx -> do
+                            divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                              dyn_ $ renderPandoc <$> ctx
                         divClass "col-start-1 col-span-6 place-self-center text-gray-400 border-t-2" $ do
                           text "Powered by "
                           elAttr "a" ("href" =: "https://github.com/srid/emanote") $
@@ -150,7 +148,15 @@ app = do
         fmap (Just . untag) <$> askRoute
   where
     renderLinkContexts name ls ctxW = do
-      divClass name $ do
+      let mkDivClass hide =
+            T.intercalate " " $
+              catMaybes
+                [ bool Nothing (Just "hidden") hide,
+                  Just "linksBox",
+                  Just "animated",
+                  Just name
+                ]
+      elDynClass "div" (mkDivClass . null <$> ls) $ do
         elClass "h2" "header w-full pl-2 pt-2 pb-2 font-serif bg-green-100 " $ text name
         divClass "p-2" $ do
           void $
