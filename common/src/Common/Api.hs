@@ -15,8 +15,8 @@ import Data.Aeson.GADT.TH (deriveJSONGADT)
 import Data.Constraint.Extras.TH (deriveArgDict)
 import Data.GADT.Show.TH (deriveGShow)
 import qualified Emanote.Markdown.WikiLink as EM
-import qualified Emanote.Zk as Zk
 import Emanote.Zk.Type (Zettel)
+import qualified Emanote.Zk.Type as Zk
 import Reflex.Dom.Core
 import Relude
 import Text.Pandoc.Definition
@@ -49,12 +49,15 @@ data LinkStatus
   deriving (Eq, Show, Ord, Generic, ToJSON, FromJSON)
 
 data EmanoteApi :: * -> * where
+  EmanoteApi_GetRev :: EmanoteApi Zk.Rev
   EmanoteApi_GetNotes :: EmanoteApi (Zk.Rev, [(LinkStatus, EM.WikiLinkID)])
   EmanoteApi_Note :: EM.WikiLinkID -> EmanoteApi (Zk.Rev, Note)
 
 deriveGShow ''EmanoteApi
 deriveJSONGADT ''EmanoteApi
 deriveArgDict ''EmanoteApi
+
+deriving instance Show (EmanoteApi Zk.Rev)
 
 deriving instance Show (EmanoteApi [EM.WikiLinkID])
 

@@ -4,7 +4,6 @@ module Emanote.Zk where
 
 import Control.Concurrent (forkIO)
 import qualified Control.Concurrent.STM as STM
-import Data.Tagged
 import Emanote.Graph (Graph)
 import Emanote.Graph.Patch (PatchGraph)
 import qualified Emanote.Markdown.WikiLink as M
@@ -19,8 +18,6 @@ data Zk = Zk
     _zk_graph :: TIncremental PatchGraph,
     _zk_processStateRev :: TVar Rev
   }
-
-type Rev = Tagged "Rev" Integer
 
 run :: Zk -> IO ()
 run Zk {..} = do

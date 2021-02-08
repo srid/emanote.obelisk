@@ -20,7 +20,7 @@ import Relude.Extra (groupBy)
 -- A conflict happens when a key (see @resolveConflicts@) maps to two or more
 -- values, each identified by an unique identifier.
 data Conflict identifier a = Conflict (identifier, a) (NonEmpty (identifier, a))
-  deriving (Show, Generic)
+  deriving (Show, Generic, Eq)
 
 -- TODO: clean up
 instance ToJSON (Conflict FilePath ByteString) where

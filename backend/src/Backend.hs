@@ -75,6 +75,8 @@ backend =
 
 handleEmanoteApi :: MonadIO m => Zk -> EmanoteApi a -> m a
 handleEmanoteApi zk@Zk {..} = \case
+  EmanoteApi_GetRev -> do
+    Zk.getRev zk
   EmanoteApi_GetNotes -> do
     liftIO $ putStrLn "GetNotes!"
     zs <- Zk.getZettels zk

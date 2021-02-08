@@ -21,3 +21,5 @@ type Zettel =
         -- Pandoc AST
         Pandoc
     )
+
+type Rev = Tagged "Rev" Integer

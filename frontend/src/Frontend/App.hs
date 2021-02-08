@@ -6,7 +6,13 @@
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Frontend.App (runApp, requestingDynamic) where
+module Frontend.App
+  ( runApp,
+    requestingDynamic,
+    requestingDynamicWithRefreshEvent,
+    pollRevUpdates,
+  )
+where
 
 import Common.Api (EmanoteApi (..), EmanoteNet)
 import Common.Route
@@ -14,6 +20,7 @@ import Control.Monad.Fix (MonadFix)
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Constraint.Extras (Has)
 import qualified Data.Text as T
+import Data.Time.Clock
 import Obelisk.Configs (HasConfigs, getTextConfig)
 import Obelisk.Route
 import Obelisk.Route.Frontend
@@ -79,6 +86,16 @@ requestingDynamic ::
   Dynamic t (Request m a) ->
   m (Event t (Response m a))
 requestingDynamic reqDyn = do
+  requestingDynamicWithRefreshEvent reqDyn never
+
+-- | Like @requestingDynamict@, but allow remaking the request on an event
+requestingDynamicWithRefreshEvent ::
+  forall a t m js.
+  (Requester t m, MonadSample t m, Prerender js t m) =>
+  Dynamic t (Request m a) ->
+  Event t () ->
+  m (Event t (Response m a))
+requestingDynamicWithRefreshEvent reqDyn refreshE = do
   r0 <- sample $ current reqDyn
   let rE = updated reqDyn
   requesting <=< fmap switchPromptlyDyn $ do
@@ -86,4 +103,55 @@ requestingDynamic reqDyn = do
     -- otherwise it won't fire for consumption by `requestiong`.
     prerender (pure never) $ do
       pb <- getPostBuild
-      pure $ leftmost [r0 <$ pb, rE]
+      pure $
+        leftmost
+          [ r0 <$ pb,
+            rE,
+            tag (current reqDyn) refreshE
+          ]
+
+-- Polling to fake real-time updates
+
+-- | For each new route change with current rev, poll the backend until a new rev
+-- becomes available (in output event).
+pollRevUpdates ::
+  forall t m rev.
+  ( MonadHold t m,
+    PerformEvent t m,
+    TriggerEvent t m,
+    MonadIO m,
+    MonadIO (Performable m),
+    Requester t m,
+    MonadFix m,
+    Ord rev
+  ) =>
+  -- | The request that fetches the current rev
+  Request m rev ->
+  -- | How to pull the rev out of that request's response.
+  (Response m rev -> Maybe rev) ->
+  -- | Rev from current page rendering.
+  --
+  -- This generally coincides with the route event, inasmuch as route change
+  -- results in API fetch which returns the rev along with the API data (that
+  -- rev is available in the event here)
+  Event t rev ->
+  m (Event t rev)
+pollRevUpdates req respVal currentRevE = do
+  timeNow <- liftIO getCurrentTime
+  pollE <- tickLossyFrom 1 timeNow currentRevE
+  revRefresh <- fmapMaybe respVal <$> requesting (req <$ pollE)
+  currentRev <- fmap current $ holdDyn Nothing $ Just <$> currentRevE
+  result <-
+    holdDyn Nothing $
+      Just
+        <$> attachWithMaybe
+          ( \mt0 tn -> do
+              t0 <- mt0
+              -- If the server-reported revision (tn) is greater than last page
+              -- render's rev (t0), fire an update event with the server's rev.
+              guard $ tn > t0
+              pure tn
+          )
+          currentRev
+          revRefresh
+  fmapMaybe id . updated <$> holdUniqDyn result

@@ -23,6 +23,7 @@ library
     , relude
     , tagged
     , text
+    , time
 
   exposed-modules:
     Frontend
