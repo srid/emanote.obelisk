@@ -75,7 +75,16 @@ handleEmanoteApi :: MonadIO m => Zk -> EmanoteApi a -> m a
 handleEmanoteApi Zk {..} = \case
   EmanoteApi_GetNotes -> do
     liftIO $ putStrLn $ "GetNotes!"
-    sortOn Down . Map.keys <$> TInc.readValue _zk_zettels
+    zs <- TInc.readValue _zk_zettels
+    graph <- TInc.readValue _zk_graph
+    let orphans =
+          let getVertices = GP.patchedGraphVertexSet (isJust . flip Map.lookup zs) . G.unGraph
+              indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
+              all' = getVertices graph
+           in all' `Set.difference` indexed
+    pure $
+      Map.keys zs <&> \z ->
+        bool (LinkStatus_Connected, z) (LinkStatus_Orphaned, z) $ Set.member z orphans
   EmanoteApi_Note wikiLinkID -> do
     liftIO $ putStrLn $ "Note! " <> show wikiLinkID
     zs <- TInc.readValue _zk_zettels
@@ -86,12 +95,6 @@ handleEmanoteApi Zk {..} = \case
           -- Sort in reverse order so that daily notes (calendar) are pushed down.
           sortOn Down ls
         wikiLinkUrl = renderWikiLinkUrl wikiLinkID
-        orphans =
-          let getVertices = GP.patchedGraphVertexSet (isJust . flip Map.lookup zs) . G.unGraph
-              indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
-              all' = getVertices graph
-              unindexed = all' `Set.difference` indexed
-           in Set.toList unindexed <&> mkLinkContext (WikiLinkLabel_Unlabelled, mempty)
     let note =
           Note
             wikiLinkID
@@ -101,10 +104,8 @@ handleEmanoteApi Zk {..} = \case
             (mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l) && not (W.isBranch l))) -- Backlinks (sans uplinks / downlinks)
             (mkLinkCtxList W.isBranch) -- Downlinks
             (mkLinkCtxList W.isParent) -- Uplinks
-            orphans
     pure note
   where
     mkLinkContext :: (WikiLinkLabel, [Block]) -> WikiLinkID -> LinkContext
     mkLinkContext (_linkcontext_label, Pandoc mempty -> _linkcontext_ctx) _linkcontext_id =
-      let _linkcontext_url = renderWikiLinkUrl _linkcontext_id
-       in LinkContext {..}
+      LinkContext {..}

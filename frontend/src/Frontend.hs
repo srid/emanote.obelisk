@@ -65,14 +65,27 @@ app = do
               text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display the list of notes."
             req <- fmap (const EmanoteApi_GetNotes) <$> askRoute
             resp <- App.requestingDynamic req
-            widgetHold_ loader $
-              ffor resp $ \case
-                Left (err :: Text) -> text (show err)
-                Right notes -> do
-                  el "ul" $ do
-                    forM_ notes $ \wId -> do
-                      el "li" $ do
-                        routeLink (FrontendRoute_Note :/ wId) $ text $ untag wId
+            mresp <- maybeDyn =<< holdDyn Nothing (Just <$> resp)
+            dyn_ $
+              ffor mresp $ \case
+                Nothing -> loader
+                Just v -> do
+                  eresp <- eitherDyn v
+                  dyn_ $
+                    ffor eresp $ \case
+                      Left err -> dynText err
+                      Right notesDyn -> do
+                        el "ul" $ do
+                          void $
+                            simpleList notesDyn $ \xDyn -> do
+                              elClass "li" "mb-2" $ do
+                                renderWikiLink mempty (constDyn WikiLinkLabel_Unlabelled) (snd <$> xDyn)
+                                dyn_ $
+                                  ffor (fst <$> xDyn) $ \case
+                                    LinkStatus_Orphaned ->
+                                      elClass "span" "border-2 bg-red-600 text-white ml-2 text-sm rounded" $
+                                        text "Orphaned"
+                                    _ -> blank
         pure $ constDyn Nothing
       FrontendRoute_Note -> do
         req <- fmap EmanoteApi_Note <$> askRoute
@@ -132,9 +145,6 @@ app = do
                               renderLinkContexts "Downlinks" (_note_downlinks <$> noteDyn) $ \ctx -> do
                                 divClass "opacity-50 hover:opacity-100 text-sm" $ do
                                   dyn_ $ renderPandoc <$> ctx
-                            -- Adding a bg color only to workaround a font jankiness
-                            divClass "linksBox overflow-auto max-h-60 bg-gray-200" $ do
-                              renderLinkContexts "Orphans" (_note_orphans <$> noteDyn) (const blank)
                         divClass "col-start-1 col-span-6 place-self-center text-gray-400 border-t-2" $ do
                           text "Powered by "
                           elAttr "a" ("href" =: "https://github.com/srid/emanote") $
@@ -152,15 +162,17 @@ app = do
                   renderLinkContext ("class" =: "text-green-700") lDyn
                 ctxW $ _linkcontext_ctx <$> lDyn
     renderLinkContext attrs lDyn = do
+      renderWikiLink attrs (_linkcontext_label <$> lDyn) (_linkcontext_id <$> lDyn)
+    renderWikiLink attrs lbl wId =
       routeLinkDynAttr
-        ( ffor lDyn $ \LinkContext {..} ->
-            "title" =: show _linkcontext_label <> attrs
+        ( ffor lbl $ \x ->
+            "title" =: show x <> attrs
         )
-        ( ffor lDyn $ \LinkContext {..} ->
-            FrontendRoute_Note :/ _linkcontext_id
+        ( ffor wId $ \x ->
+            FrontendRoute_Note :/ x
         )
         $ do
-          dynText $ untag . _linkcontext_id <$> lDyn
+          dynText $ untag <$> wId
     renderPandoc doc = do
       let cfg =
             PR.defaultConfig

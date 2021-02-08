@@ -28,15 +28,12 @@ data Note = Note
     _note_zettel :: Maybe Zettel,
     _note_backlinks :: [LinkContext],
     _note_downlinks :: [LinkContext],
-    _note_uplinks :: [LinkContext],
-    -- TODO: Use Link Type, as there is no context
-    _note_orphans :: [LinkContext]
+    _note_uplinks :: [LinkContext]
   }
   deriving (Generic, ToJSON, FromJSON)
 
 data LinkContext = LinkContext
   { _linkcontext_id :: EM.WikiLinkID,
-    _linkcontext_url :: Text,
     _linkcontext_label :: EM.WikiLinkLabel,
     _linkcontext_ctx :: Pandoc
   }
@@ -45,8 +42,13 @@ data LinkContext = LinkContext
 instance Ord LinkContext where
   compare = compare `on` _linkcontext_id
 
+data LinkStatus
+  = LinkStatus_Orphaned
+  | LinkStatus_Connected
+  deriving (Eq, Show, Ord, Generic, ToJSON, FromJSON)
+
 data EmanoteApi :: * -> * where
-  EmanoteApi_GetNotes :: EmanoteApi [EM.WikiLinkID]
+  EmanoteApi_GetNotes :: EmanoteApi [(LinkStatus, EM.WikiLinkID)]
   EmanoteApi_Note :: EM.WikiLinkID -> EmanoteApi Note
 
 deriveGShow ''EmanoteApi
