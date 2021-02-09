@@ -24,6 +24,7 @@ library
     , tagged
     , text
     , time
+    , pandoc-types
 
   exposed-modules:
     Frontend
