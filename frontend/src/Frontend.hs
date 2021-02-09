@@ -96,7 +96,7 @@ homeWidget ::
     Prerender js t m,
     MonadFix m
   ) =>
-  Event t (Either Text (Zk.Rev, [(LinkStatus, WikiLinkID)])) ->
+  Event t (Either Text (Zk.Rev, [(Affinity, WikiLinkID)])) ->
   RoutedT t () m (Dynamic t (Maybe Zk.Rev))
 homeWidget resp = do
   divClass "w-full md:w-1/2 overflow-hidden md:my-2 md:px-2" $ do
@@ -112,10 +112,7 @@ homeWidget resp = do
             elClass "li" "mb-2" $ do
               renderWikiLink mempty (constDyn WikiLinkLabel_Unlabelled) (snd <$> xDyn)
               dyn_ $
-                ffor (fst <$> xDyn) $ \case
-                  LinkStatus_Orphaned ->
-                    orphanLabel
-                  _ -> blank
+                affinityLabel . fst <$> xDyn
       pure $ Just <$> revDyn
 
 noteWidget ::
@@ -251,10 +248,18 @@ renderPandoc doc = do
           routeLinkDynAttr attr r $ do
             text $ untag wId
 
-orphanLabel :: DomBuilder t m => m ()
-orphanLabel = do
-  elClass "span" "border-2 bg-red-600 text-white ml-2 text-sm rounded" $
-    text "Orphaned"
+affinityLabel :: DomBuilder t m => Affinity -> m ()
+affinityLabel = \case
+  Affinity_Orphaned ->
+    elClass "span" "border-2 bg-red-600 text-white ml-2 p-0.5 text-sm rounded" $
+      text "Orphaned"
+  Affinity_Root ->
+    elClass "span" "border-2 bg-purple-600 text-white ml-2 p-0.5 text-sm rounded" $
+      text "Root"
+  Affinity_HasParents n ->
+    elClass "span" "border-2 text-gray ml-2 p-0.5 text-sm rounded" $ do
+      elAttr "span" ("title" =: (show n <> " parents")) $
+        text $ show n
 
 loader :: DomBuilder t m => m ()
 loader = do

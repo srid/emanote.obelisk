@@ -6,10 +6,9 @@ To run locally,
 
 Go to <http://localhost:8000/> ([Don't use Firefox](https://github.com/reflex-frp/reflex-examples/issues/30#issuecomment-462827693))
 
-Edit `config/backend/notesDir` to run on your own notebook.
+Note:
 
-To do a **full build** (uses GHCJS to produce JS that runs entirely on browser):
+- Edit `config/backend/notesDir` to run on your own notebook.
+- The development server may be glitchy, and slow at times. But the full build should be reliable and performant.
 
-```
-nix-build -A exe
-```
+To do a **full build**, refer to Obelisk's deployment guide.

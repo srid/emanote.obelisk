@@ -43,14 +43,19 @@ data LinkContext = LinkContext
 instance Ord LinkContext where
   compare = compare `on` _linkcontext_id
 
-data LinkStatus
-  = LinkStatus_Orphaned
-  | LinkStatus_Connected
+-- | Folgezettel affinity of a note
+data Affinity
+  = -- Has 1+ folgezettel parents
+    Affinity_HasParents Natural
+  | -- Has no folgezettel parent, but non-zero folgezettel children
+    Affinity_Root
+  | -- Has no folgezettel relation whatsoever
+    Affinity_Orphaned
   deriving (Eq, Show, Ord, Generic, ToJSON, FromJSON)
 
 data EmanoteApi :: * -> * where
   EmanoteApi_GetRev :: EmanoteApi Zk.Rev
-  EmanoteApi_GetNotes :: EmanoteApi (Zk.Rev, [(LinkStatus, EM.WikiLinkID)])
+  EmanoteApi_GetNotes :: EmanoteApi (Zk.Rev, [(Affinity, EM.WikiLinkID)])
   EmanoteApi_Note :: EM.WikiLinkID -> EmanoteApi (Zk.Rev, Note)
 
 deriveGShow ''EmanoteApi

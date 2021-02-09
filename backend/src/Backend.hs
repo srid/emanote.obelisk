@@ -10,7 +10,7 @@ import Data.Constraint.Extras (has)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Data.Some (Some (..))
-import Data.Text as T
+import qualified Data.Text as T
 import qualified Emanote
 import qualified Emanote.Graph as G
 import qualified Emanote.Graph.Patch as GP
@@ -18,6 +18,7 @@ import Emanote.Markdown.WikiLink
 import qualified Emanote.Markdown.WikiLink as W
 import Emanote.Zk (Zk (..))
 import qualified Emanote.Zk as Zk
+import GHC.Natural
 import Network.WebSockets as WS
 import Network.WebSockets.Snap as WS (runWebSocketsSnap)
 import Obelisk.Backend (Backend (..))
@@ -60,8 +61,6 @@ backend =
                         WS.Binary v -> v
                   case m of
                     Right req -> do
-                      -- TODO: Investigate the possibility of handleEmanoteApi
-                      -- "streaming" changes for this `conn` (depending on its last request).
                       r <- mkTaggedResponse req $ handleEmanoteApi zk
                       case r of
                         Left err -> error $ toText err -- TODO
@@ -87,11 +86,15 @@ handleEmanoteApi zk@Zk {..} = \case
               indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
               all' = getVertices graph
            in all' `Set.difference` indexed
+        getAffinity = \case
+          z | Set.member z orphans -> Affinity_Orphaned
+          z -> case length (G.connectionsOf W.isParent z graph) of
+            0 -> Affinity_Root
+            n -> Affinity_HasParents (intToNatural n)
     pure $
       (rev,) $
-        sort $
-          Map.keys zs <&> \z ->
-            bool (LinkStatus_Connected, z) (LinkStatus_Orphaned, z) $ Set.member z orphans
+        sortOn Down $
+          Map.keys zs <&> getAffinity &&& id
   EmanoteApi_Note wikiLinkID -> do
     liftIO $ putStrLn $ "Note! " <> show wikiLinkID
     zs <- Zk.getZettels zk
