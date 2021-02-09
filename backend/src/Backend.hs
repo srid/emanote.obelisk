@@ -81,11 +81,10 @@ handleEmanoteApi zk@Zk {..} = \case
     zs <- Zk.getZettels zk
     graph <- Zk.getGraph zk
     rev <- Zk.getRev zk
-    let orphans =
-          let getVertices = GP.patchedGraphVertexSet (isJust . flip Map.lookup zs) . G.unGraph
-              indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
-              all' = getVertices graph
-           in all' `Set.difference` indexed
+    let getVertices = GP.patchedGraphVertexSet (isJust . flip Map.lookup zs) . G.unGraph
+        orphans =
+          let indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
+           in getVertices graph `Set.difference` indexed
         getAffinity = \case
           z | Set.member z orphans -> Affinity_Orphaned
           z -> case length (G.connectionsOf W.isParent z graph) of
@@ -94,7 +93,7 @@ handleEmanoteApi zk@Zk {..} = \case
     pure $
       (rev,) $
         sortOn Down $
-          Map.keys zs <&> getAffinity &&& id
+          Set.toList (getVertices graph) <&> getAffinity &&& id
   EmanoteApi_Note wikiLinkID -> do
     liftIO $ putStrLn $ "Note! " <> show wikiLinkID
     zs <- Zk.getZettels zk
