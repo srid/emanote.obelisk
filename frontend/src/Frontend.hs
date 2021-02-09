@@ -137,19 +137,8 @@ app updateAvailable = do
                         uplinks = _note_uplinks <$> noteDyn
                         backlinks = _note_backlinks <$> noteDyn
                         downlinks = _note_downlinks <$> noteDyn
-                    divClass "grid gap-4 grid-cols-6" $ do
-                      divClass "col-start-1 col-span-2" $ do
-                        divClass "" $ do
-                          routeLink (FrontendRoute_Main :/ ()) $
-                            elClass "button" "font-serif border-1 p-2 text-white rounded-b place-self-center border-green-700 bg-green-400 hover:opacity-70" $
-                              text "Home"
-                        renderLinkContexts "Uplinks" uplinks $ \ctx -> do
-                          divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                            dyn_ $ renderPandoc <$> ctx
-                        renderLinkContexts "Backlinks" backlinks $ \ctx -> do
-                          divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                            dyn_ $ renderPandoc <$> ctx
-                      divClass "col-start-3 col-span-4" $ do
+                    divClass "flex flex-wrap flex-row-reverse md:-mx-2 overflow-hidden" $ do
+                      divClass "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6" $ do
                         el "h1" $ do
                           r <- askRoute
                           dynText $ untag <$> r
@@ -172,7 +161,18 @@ app updateAvailable = do
                         renderLinkContexts "Downlinks" downlinks $ \ctx -> do
                           divClass "opacity-50 hover:opacity-100 text-sm" $ do
                             dyn_ $ renderPandoc <$> ctx
-                      divClass "col-start-1 col-span-6 place-self-center text-gray-400 border-t-2" $ do
+                      divClass "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6" $ do
+                        divClass "" $ do
+                          routeLink (FrontendRoute_Main :/ ()) $
+                            elClass "button" "font-serif border-1 p-2 text-white rounded place-self-center border-green-700 bg-green-400 hover:opacity-70" $
+                              text "Home"
+                        renderLinkContexts "Uplinks" uplinks $ \ctx -> do
+                          divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                            dyn_ $ renderPandoc <$> ctx
+                        renderLinkContexts "Backlinks" backlinks $ \ctx -> do
+                          divClass "opacity-50 hover:opacity-100 text-sm" $ do
+                            dyn_ $ renderPandoc <$> ctx
+                      divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2" $ do
                         text "Powered by "
                         elAttr "a" ("href" =: "https://github.com/srid/emanote") $
                           text "Emanote"
