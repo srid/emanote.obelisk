@@ -70,39 +70,9 @@ app updateAvailable = do
     fmap join $
       subRoute $ \case
         FrontendRoute_Main -> do
-          divClass "w-full md:w-1/2 overflow-hidden md:my-2 md:px-2" $ do
-            el "h1" $ text "Emanote"
-            elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
-              text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display the list of notes."
-            req <- fmap (const EmanoteApi_GetNotes) <$> askRoute
-            resp <- App.requestingDynamicWithRefreshEvent req (() <$ updateAvailable)
-            mresp <- maybeDyn =<< holdDyn Nothing (Just <$> resp)
-            (fmap join . holdDyn (constDyn (Nothing, Nothing))) <=< dyn $
-              ffor mresp $ \case
-                Nothing -> do
-                  loader
-                  pure $ constDyn (Nothing, Nothing)
-                Just v -> do
-                  eresp <- eitherDyn v
-                  (fmap join . holdDyn (constDyn (Nothing, Nothing))) <=< dyn $
-                    ffor eresp $ \case
-                      Left err -> do
-                        dynText err
-                        pure $ constDyn (Nothing, Just "Err")
-                      Right result -> do
-                        let notesDyn = snd <$> result
-                            revDyn = fst <$> result
-                        el "ul" $ do
-                          void $
-                            simpleList notesDyn $ \xDyn -> do
-                              elClass "li" "mb-2" $ do
-                                renderWikiLink mempty (constDyn WikiLinkLabel_Unlabelled) (snd <$> xDyn)
-                                dyn_ $
-                                  ffor (fst <$> xDyn) $ \case
-                                    LinkStatus_Orphaned ->
-                                      orphanLabel
-                                    _ -> blank
-                        pure $ ffor revDyn $ \rev -> (Just rev, Just "Home")
+          req <- fmap (const EmanoteApi_GetNotes) <$> askRoute
+          resp <- App.requestingDynamicWithRefreshEvent req (() <$ updateAvailable)
+          fmap (,Just "Home") <$> homeWidget resp
         FrontendRoute_Note -> do
           req <- fmap EmanoteApi_Note <$> askRoute
           resp <- App.requestingDynamicWithRefreshEvent req (() <$ updateAvailable)
@@ -115,6 +85,38 @@ app updateAvailable = do
           currentRev :: Dynamic t (Maybe Zk.Rev) <- noteWidget waiting resp
           titleDyn <- fmap (Just . untag) <$> askRoute
           pure $ (,) <$> currentRev <*> titleDyn
+
+homeWidget ::
+  forall js t m.
+  ( DomBuilder t m,
+    MonadHold t m,
+    PostBuild t m,
+    RouteToUrl (R FrontendRoute) m,
+    SetRoute t (R FrontendRoute) m,
+    Prerender js t m,
+    MonadFix m
+  ) =>
+  Event t (Either Text (Zk.Rev, [(LinkStatus, WikiLinkID)])) ->
+  RoutedT t () m (Dynamic t (Maybe Zk.Rev))
+homeWidget resp = do
+  divClass "w-full md:w-1/2 overflow-hidden md:my-2 md:px-2" $ do
+    el "h1" $ text "Emanote"
+    elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
+      text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display the list of notes."
+    withBackendResponse resp (constDyn Nothing) $ \result -> do
+      let notesDyn = snd <$> result
+          revDyn = fst <$> result
+      el "ul" $ do
+        void $
+          simpleList notesDyn $ \xDyn -> do
+            elClass "li" "mb-2" $ do
+              renderWikiLink mempty (constDyn WikiLinkLabel_Unlabelled) (snd <$> xDyn)
+              dyn_ $
+                ffor (fst <$> xDyn) $ \case
+                  LinkStatus_Orphaned ->
+                    orphanLabel
+                  _ -> blank
+      pure $ Just <$> revDyn
 
 noteWidget ::
   forall js t m.
@@ -132,68 +134,54 @@ noteWidget ::
 noteWidget waiting resp = do
   let divClassMayLoading cls =
         elDynClass "div" (ffor waiting $ bool cls (cls <> " animate-pulse"))
-  mresp <- maybeDyn =<< holdDyn Nothing (Just <$> resp)
-  (fmap join . holdDyn (constDyn Nothing)) <=< dyn $
-    ffor mresp $ \case
-      Nothing -> do
-        loader
-        pure $ constDyn Nothing
-      Just resp' -> do
-        eresp <- eitherDyn resp'
-        (fmap join . holdDyn (constDyn Nothing)) <=< dyn $
-          ffor eresp $ \case
-            Left errDyn -> do
-              dynText $ show <$> errDyn
-              pure $ constDyn Nothing
-            Right result -> do
-              let noteDyn = snd <$> result
-                  revDyn :: Dynamic t Zk.Rev = fst <$> result
-                  uplinks = _note_uplinks <$> noteDyn
-                  backlinks = _note_backlinks <$> noteDyn
-                  downlinks = _note_downlinks <$> noteDyn
-              do
-                divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6" $ do
-                  el "h1" $ do
-                    r <- askRoute
-                    dynText $ untag <$> r
-                  mzettel <- maybeDyn $ _note_zettel <$> noteDyn
+  withBackendResponse resp (constDyn Nothing) $ \result -> do
+    let noteDyn = snd <$> result
+        revDyn :: Dynamic t Zk.Rev = fst <$> result
+        uplinks = _note_uplinks <$> noteDyn
+        backlinks = _note_backlinks <$> noteDyn
+        downlinks = _note_downlinks <$> noteDyn
+    divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6" $ do
+      el "h1" $ do
+        r <- askRoute
+        dynText $ untag <$> r
+      mzettel <- maybeDyn $ _note_zettel <$> noteDyn
+      dyn_ $
+        ffor mzettel $ \case
+          Nothing -> text "No such note"
+          Just zDyn -> do
+            ez <- eitherDyn zDyn
+            dyn_ $
+              ffor ez $ \case
+                Left conflict -> dynText $ show <$> conflict
+                Right (fmap snd -> v) -> do
+                  edoc <- eitherDyn v
                   dyn_ $
-                    ffor mzettel $ \case
-                      Nothing -> text "No such note"
-                      Just zDyn -> do
-                        ez <- eitherDyn zDyn
-                        dyn_ $
-                          ffor ez $ \case
-                            Left conflict -> dynText $ show <$> conflict
-                            Right (fmap snd -> v) -> do
-                              edoc <- eitherDyn v
-                              dyn_ $
-                                ffor edoc $ \case
-                                  Left parseErr -> dynText $ show <$> parseErr
-                                  Right docDyn -> do
-                                    dyn_ $ renderPandoc <$> docDyn
-                  renderLinkContexts "Downlinks" downlinks $ \ctx -> do
-                    divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                      dyn_ $ renderPandoc <$> ctx
-                divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6" $ do
-                  divClass "" $ do
-                    routeLink (FrontendRoute_Main :/ ()) $
-                      elClass "button" "font-serif border-1 p-2 text-white rounded place-self-center border-green-700 bg-green-400 hover:opacity-70" $
-                        text "Home"
-                  renderLinkContexts "Uplinks" uplinks $ \ctx -> do
-                    divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                      dyn_ $ renderPandoc <$> ctx
-                  renderLinkContexts "Backlinks" backlinks $ \ctx -> do
-                    divClass "opacity-50 hover:opacity-100 text-sm" $ do
-                      dyn_ $ renderPandoc <$> ctx
-                divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2" $ do
-                  text "Powered by "
-                  elAttr "a" ("href" =: "https://github.com/srid/emanote") $
-                    text "Emanote"
-                  text " ("
-                  el "tt" $ dynText $ show . untag <$> revDyn
-                  text " changes since boot)"
-              pure $ Just <$> revDyn
+                    ffor edoc $ \case
+                      Left parseErr -> dynText $ show <$> parseErr
+                      Right docDyn -> do
+                        dyn_ $ renderPandoc <$> docDyn
+      renderLinkContexts "Downlinks" downlinks $ \ctx -> do
+        divClass "opacity-50 hover:opacity-100 text-sm" $ do
+          dyn_ $ renderPandoc <$> ctx
+    divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6" $ do
+      divClass "" $ do
+        routeLink (FrontendRoute_Main :/ ()) $
+          elClass "button" "font-serif border-1 p-2 text-white rounded place-self-center border-green-700 bg-green-400 hover:opacity-70" $
+            text "Home"
+      renderLinkContexts "Uplinks" uplinks $ \ctx -> do
+        divClass "opacity-50 hover:opacity-100 text-sm" $ do
+          dyn_ $ renderPandoc <$> ctx
+      renderLinkContexts "Backlinks" backlinks $ \ctx -> do
+        divClass "opacity-50 hover:opacity-100 text-sm" $ do
+          dyn_ $ renderPandoc <$> ctx
+    divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2" $ do
+      text "Powered by "
+      elAttr "a" ("href" =: "https://github.com/srid/emanote") $
+        text "Emanote"
+      text " ("
+      el "tt" $ dynText $ show . untag <$> revDyn
+      text " changes since boot)"
+    pure $ Just <$> revDyn
   where
     renderLinkContexts name ls ctxW = do
       let mkDivClass hide =
@@ -274,3 +262,37 @@ loader = do
     divClass "col-start-1 col-span-3 h-16" blank
     divClass "col-start-2 col-span-1 place-self-center p-4 h-full bg-black text-white rounded" $
       text "Loading..."
+
+-- Handle a response event from backend, and invoke the given widget for the
+-- actual result.
+--
+-- This function does loading state and error handling.
+withBackendResponse ::
+  ( DomBuilder t m,
+    PostBuild t m,
+    MonadHold t m,
+    MonadFix m
+  ) =>
+  -- | Response event from backend
+  Event t (Either Text result) ->
+  -- | The value to return when the result is not yet available or successful.
+  Dynamic t v ->
+  -- | Widget to render when the successful result becomes available
+  (Dynamic t result -> m (Dynamic t v)) ->
+  m (Dynamic t v)
+withBackendResponse resp v0 f = do
+  mresp <- maybeDyn =<< holdDyn Nothing (Just <$> resp)
+  (fmap join . holdDyn v0) <=< dyn $
+    ffor mresp $ \case
+      Nothing -> do
+        loader
+        pure v0
+      Just resp' -> do
+        eresp <- eitherDyn resp'
+        (fmap join . holdDyn v0) <=< dyn $
+          ffor eresp $ \case
+            Left errDyn -> do
+              dynText $ show <$> errDyn
+              pure v0
+            Right result ->
+              f result
