@@ -20,7 +20,7 @@ Then read `./doc/Development.md`
 
 ## When will it be released?
 
-I plan to move srid.ca to use emanote by mid-Feb. My private Zettelkasten already is using emanote.
+I plan to move srid.ca to use emanote by end of Feb. My private Zettelkasten already is using emanote.
 
 ## Talk about it
 
