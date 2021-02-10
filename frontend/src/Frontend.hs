@@ -47,7 +47,7 @@ frontend =
           fmap join $
             prerender (pure $ constDyn Nothing) $ do
               App.runApp $ do
-                rec xDyn <- app $ traceEvent "updateAvailable" update
+                rec xDyn <- app update
                     let rev = fmapMaybe id $ updated $ fst <$> xDyn
                     update <- App.pollRevUpdates EmanoteApi_GetRev rightToMaybe rev
                 pure $ snd <$> xDyn
