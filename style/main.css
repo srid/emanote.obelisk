@@ -19,14 +19,28 @@
 
   /* Pandoc */
   div.pandoc {
-    @apply break-words;
+    @apply break-words overflow-y-auto;
   }
-  div.pandoc div.checkbox {
-    @apply inline-block pr-1 place-content-center;
+  div.pandoc input[type="checkbox"] {
+    @apply mr-2 place-content-center;
   }
-  div.pandoc p {
-    @apply pb-2;
+
+  div.pandoc table  {
+    @apply table-auto border-solid border-2 border-black;
   }
+  div.pandoc table thead {
+    @apply bg-gray-200;
+  }
+  div.pandoc table thead th {
+    @apply text-left;
+  }
+  div.pandoc table tr {
+    @apply border-solid border-b-2 border-black;
+  }
+  div.pandoc table th, div.pandoc table td {
+    @apply p-2;
+  }
+
   div.pandoc ul {
     @apply pl-4 pb-2;
   }
@@ -62,7 +76,7 @@
     @apply border-l-4 border-gray-500 ml-2 p-2 bg-gray-100;
   }
   div.pandoc div.pandoc-code {
-    @apply bg-gray-100 my-2 p-2 rounded shadow;
+    @apply bg-gray-100 my-2 p-2 rounded shadow overflow-y-auto;
   }
   div.pandoc div#footnotes {
     @apply bg-gray-100 text-gray-700 border-t-2 p-2 mt-4;

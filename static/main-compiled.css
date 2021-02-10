@@ -586,17 +586,41 @@ div.linksBox.animated {
 /* Pandoc */
 
 div.pandoc {
+  overflow-y: auto;
   overflow-wrap: break-word;
 }
 
-div.pandoc div.checkbox {
-  display: inline-block;
+div.pandoc input[type="checkbox"] {
   place-content: center;
-  padding-right: 0.25rem;
+  margin-right: 0.5rem;
 }
 
-div.pandoc p {
-  padding-bottom: 0.5rem;
+div.pandoc table  {
+  --tw-border-opacity: 1;
+  border-color: rgba(0, 0, 0, var(--tw-border-opacity));
+  border-style: solid;
+  border-width: 2px;
+  table-layout: auto;
+}
+
+div.pandoc table thead {
+  --tw-bg-opacity: 1;
+  background-color: rgba(229, 231, 235, var(--tw-bg-opacity));
+}
+
+div.pandoc table thead th {
+  text-align: left;
+}
+
+div.pandoc table tr {
+  --tw-border-opacity: 1;
+  border-color: rgba(0, 0, 0, var(--tw-border-opacity));
+  border-style: solid;
+  border-bottom-width: 2px;
+}
+
+div.pandoc table th, div.pandoc table td {
+  padding: 0.5rem;
 }
 
 div.pandoc ul {
@@ -663,6 +687,7 @@ div.pandoc div.pandoc-code {
   border-radius: 0.25rem;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
+  overflow-y: auto;
   padding: 0.5rem;
   --tw-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
