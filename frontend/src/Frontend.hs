@@ -103,7 +103,7 @@ homeWidget ::
   RoutedT t () m (Dynamic t (Maybe Zk.Rev))
 homeWidget resp = do
   divClass "w-full md:w-1/2 overflow-hidden md:my-2 md:px-2" $ do
-    el "h1" $ text "Emanote"
+    elClass "h1" "text-3xl text-green-700 font-bold pb-2 mt-2" $ text "Emanote"
     elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
       text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display the list of notes."
     withBackendResponse resp (constDyn Nothing) $ \result -> do
@@ -141,7 +141,7 @@ noteWidget waiting resp = do
         backlinks = _note_backlinks <$> noteDyn
         downlinks = _note_downlinks <$> noteDyn
     divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6" $ do
-      el "h1" $ do
+      elClass "h1" "text-3xl text-green-700 font-bold pb-2 mt-2" $ do
         r <- askRoute
         dynText $ untag <$> r
       mzettel <- maybeDyn $ _note_zettel <$> noteDyn
@@ -193,7 +193,7 @@ noteWidget waiting resp = do
                   Just name
                 ]
       elDynClass "div" (mkDivClass . null <$> ls) $ do
-        elClass "h2" "header w-full pl-2 pt-2 pb-2 font-serif bg-green-100 " $ text name
+        elClass "h2" "header text-xl w-full pl-2 pt-2 pb-2 font-serif bg-green-100 " $ text name
         divClass "p-2" $ do
           void $
             simpleList ls $ \lDyn -> do

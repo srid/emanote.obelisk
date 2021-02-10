@@ -546,21 +546,6 @@ video {
   height: auto;
 }
 
-h1 {
-  font-weight: 700;
-  font-size: 1.875rem;
-  line-height: 2.25rem;
-  margin-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  --tw-text-opacity: 1;
-  color: rgba(4, 120, 87, var(--tw-text-opacity));
-}
-
-h2 {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-}
-
 a {
   --tw-text-opacity: 1;
   color: rgba(30, 64, 175, var(--tw-text-opacity));
@@ -625,6 +610,11 @@ div.pandoc ul {
 
 div.pandoc ol {
   list-style-type: decimal;
+}
+
+div.pandoc h1 {
+  /* H1 is reserved, but do some styling anyway */
+  text-align: center;
 }
 
 div.pandoc h2, div.pandoc h3, div.pandoc h4, div.pandoc h5, div.pandoc h6 {

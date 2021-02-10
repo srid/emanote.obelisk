@@ -3,12 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  h1 {
-    @apply text-3xl text-green-700 font-bold pb-2 mt-2;
-  }
-  h2 {
-    @apply text-xl;
-  }
   a {
     @apply text-blue-800 hover:underline;
   }
@@ -41,6 +35,10 @@
   }
   div.pandoc ol {
     @apply list-decimal ;
+  }
+  div.pandoc h1 {
+    /* H1 is reserved, but do some styling anyway */
+    @apply text-center;
   }
   div.pandoc h2, div.pandoc h3, div.pandoc h4, div.pandoc h5, div.pandoc h6 {
     @apply mt-3 mb-2;
