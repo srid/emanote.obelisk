@@ -175,8 +175,9 @@ noteWidget waiting resp = do
         divClass "opacity-50 hover:opacity-100 text-sm" $ do
           dyn_ $ renderPandoc <$> ctx
     divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2" $ do
+      let url = "rad:git:hwd1yred516gwfzodm7cnyeyh1b17s4xw7jex4obi6rdt1c3xygo4r4cxbo"
       text "Powered by "
-      elAttr "a" ("href" =: "https://github.com/srid/emanote") $
+      elAttr "a" ("href" =: url) $
         text "Emanote"
       text " ("
       el "tt" $ dynText $ show . untag <$> revDyn

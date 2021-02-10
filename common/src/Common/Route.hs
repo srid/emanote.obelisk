@@ -15,6 +15,7 @@ import Control.Category
 import Control.Lens.Combinators
 import Data.Tagged
 import Data.Text (Text)
+import qualified Data.Text as T
 import Emanote.Markdown.WikiLink (WikiLinkID)
 import Obelisk.Route
 import Obelisk.Route.TH
@@ -53,7 +54,10 @@ fullRouteEncoder =
     wikiLinkEncoder :: (Applicative check, Applicative parse) => Encoder check parse WikiLinkID Text
     wikiLinkEncoder = viewEncoder wikiLinkIso
     wikiLinkIso :: Iso' WikiLinkID Text
-    wikiLinkIso = iso untag Tagged
+    wikiLinkIso = iso (prettify . untag) (Tagged . deprettify)
+      where
+        prettify = T.replace " " "_"
+        deprettify = T.replace "_" " " -- TODO: disambiguate, by creating 'Slug' map in backend
 
 concat
   <$> mapM
