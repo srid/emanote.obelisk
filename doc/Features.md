@@ -1,6 +1,10 @@
-- Just start writing your `.md` files, and emanote will "emanate" them into a notebook.
-- Fully dynamic website
+- Emanote gives life to a directory of Markdown files
+  - Just start writing your `.md` files in any sub-directory
+  - emanote will create a "living view" of it.
+- Fully dynamic website ("living view")
   - Realtime updates: view updates as you modify your `.md` files
-  - [In roadmap] Folgezettel-based search & navigation
-
-## Builtin filters
+  - `IN-ROADMAP` Folgezettel-based search & navigation
+- Link to notes that need not exist
+  - Linking as `[[Foo]]` for example, will treat "Foo" as a legitimate note even if "Foo.md" does not exist on disk. This enables "tagging" a note with some folgezettel parent (eg. `#[[Review]]`) without being forced to create an empty Markdown file ("Review.md") on disk.
+- `IN-ROADMAP` Pandoc filters 
+- `IN-ROADMAP` Plugins (calendar, tasks, etc.)

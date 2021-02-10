@@ -34,16 +34,53 @@
     @apply pb-2;
   }
   div.pandoc ul {
-    @apply pl-4 pb-2 list-outside;
+    @apply pl-4 pb-2;
   }
-  div.pandoc li {
+  div.pandoc ul {
     @apply list-disc ;
   }
-  div.pandoc h2, div.pandoc h3 {
-    @apply underline pb-2;
+  div.pandoc ol {
+    @apply list-decimal ;
+  }
+  div.pandoc h2, div.pandoc h3, div.pandoc h4, div.pandoc h5, div.pandoc h6 {
+    @apply mt-3 mb-2;
+  }
+  div.pandoc h2 {
+    @apply  text-3xl;
+  }
+  div.pandoc h3 {
+    @apply  text-2xl;
+  }
+  div.pandoc h4 {
+    @apply  text-xl;
+  }
+  div.pandoc h5 {
+    @apply  text-lg;
+  }
+  div.pandoc h6 {
+    @apply  text-base;
   }
   div.pandoc blockquote {
     @apply border-l-4 border-gray-500 ml-2 p-2 bg-gray-100;
+  }
+  div.pandoc div.pandoc-code {
+    @apply bg-gray-100 my-2 p-2 rounded shadow;
+  }
+  div.pandoc div#footnotes {
+    @apply bg-gray-100 text-gray-700 border-t-2 p-2 mt-4;
+  }
+  div.pandoc div#footnotes ol {
+    @apply list-inside
+  }
+  div.pandoc div#footnotes ol li[id^="fn"] {
+    @apply mb-2;
+  }
+  div.pandoc div#footnotes ol li[id^="fn"] p:first-child {
+    @apply inline;
+  }
+  div.pandoc div#footnotes ol li[id^="fn"] a[href^="#fnref"] {
+    /* Link is broken */
+    @apply hidden;
   }
 
   /* Linking */

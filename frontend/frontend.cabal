@@ -25,6 +25,7 @@ library
     , text
     , time
     , pandoc-types
+    , skylighting-core
 
   exposed-modules:
     Frontend

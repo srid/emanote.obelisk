@@ -24,6 +24,8 @@ import Obelisk.Route.Frontend
 import Reflex.Dom.Core
 import qualified Reflex.Dom.Pandoc as PR
 import Relude
+import Skylighting.Format.HTML (styleToCss)
+import Skylighting.Styles (tango)
 import Text.Pandoc.Definition (Pandoc)
 
 -- This runs in a monad that can be run on the client or the server.
@@ -38,6 +40,7 @@ frontend =
         el "title" $ do
           dynText $ fromMaybe "..." <$> titDyn
           text " | Emanote"
+        elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss tango
         Static.includeAssets,
       _frontend_body = do
         divClass "min-h-screen md:container mx-auto px-4" $ do
