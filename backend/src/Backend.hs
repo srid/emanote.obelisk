@@ -19,7 +19,7 @@ import qualified Emanote.Markdown.WikiLink as W
 import qualified Emanote.Pipeline as Pipeline
 import Emanote.Zk (Zk (..))
 import qualified Emanote.Zk as Zk
-import GHC.Natural
+import GHC.Natural (intToNatural)
 import Network.WebSockets as WS
 import Network.WebSockets.Snap as WS (runWebSocketsSnap)
 import Obelisk.Backend (Backend (..))

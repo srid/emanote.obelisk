@@ -14,13 +14,7 @@ Maybe-goals: use `emanote-core` as a core library in neuron.
 
 ## Give it a test-drive
 
-The canonical location of the source code is [radicle](https://radicle.xyz/); get it from here:
-
-```
-rad:git:hwd1yred516gwfzodm7cnyeyh1b17s4xw7jex4obi6rdt1c3xygo4r4cxbo
-```
-
-Then read `./doc/Development.md`
+Clone the source, and read `./doc/Development.md`
 
 ## When will it be released?
 
