@@ -3,6 +3,7 @@
 
 module Emanote.Pipeline (run, runNoMonitor) where
 
+import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
 import qualified Commonmark.Syntax as CM
 import Data.Conflict (Conflict (..))
 import qualified Data.Conflict as Conflict
@@ -138,15 +139,15 @@ pipeGraph ::
   forall t.
   (Reflex t) =>
   Incremental t (PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)]) ->
-  Incremental t G.PatchGraph
+  Incremental t (G.PatchGraph G.E G.V)
 pipeGraph = do
   unsafeMapIncremental
-    (fromMaybe G.empty . flip apply G.empty . f . PatchMap . fmap Just)
+    (fromMaybe AM.empty . flip apply AM.empty . f . PatchMap . fmap Just)
     f
   where
     f ::
       PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)] ->
-      G.PatchGraph
+      G.PatchGraph G.E G.V
     f p =
       G.PatchGraph . unPatchMap $
         fmap (first one) <$> p
@@ -157,16 +158,17 @@ pipeGraph = do
 -- the month zettel exists on disk (otherwise won't).
 pipeCreateCalendar ::
   Reflex t =>
-  Incremental t G.PatchGraph ->
-  Incremental t G.PatchGraph
+  Incremental t (G.PatchGraph G.E G.V) ->
+  Incremental t (G.PatchGraph G.E G.V)
 pipeCreateCalendar =
   unsafeMapIncremental
-    (fromMaybe G.empty . flip apply G.empty . f . G.asPatchGraph)
+    (fromMaybe AM.empty . flip apply AM.empty . f . G.asPatchGraph)
     f
   where
-    f :: G.PatchGraph -> G.PatchGraph
+    f :: G.PatchGraph G.E G.V -> G.PatchGraph G.E G.V
     f =
-      let liftNote wIdParser diff =
+      let liftNote :: M.Parsec Void Text Text -> G.PatchGraph G.E G.V -> G.PatchGraph G.E G.V
+          liftNote wIdParser diff =
             G.PatchGraph $
               flip Map.mapWithKey (G.unPatchGraph diff) $ \(Tagged wId) ->
                 fmap $ \es ->

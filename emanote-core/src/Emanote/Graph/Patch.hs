@@ -5,21 +5,20 @@ module Emanote.Graph.Patch where
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
-import Emanote.Graph (E, Graph (Graph), V, postSetWithLabel)
 import Reflex.Patch.Class (Patch (..))
 import Relude
 
 -- | NOTE: Patching a graph may leave orphan vertices behind. Use
 -- @patchedGraphVertexSet@ to get the effective list of vertices.
-newtype PatchGraph = PatchGraph {unPatchGraph :: Map V (Maybe [(E, V)])}
+newtype PatchGraph e v = PatchGraph {unPatchGraph :: Map v (Maybe [(e, v)])}
 
-instance Patch PatchGraph where
-  type PatchTarget PatchGraph = Graph
-  apply (PatchGraph p) (Graph graph) =
-    Graph <$> patch p graph
+instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
+  type PatchTarget (PatchGraph e v) = AM.AdjacencyMap e v
+  apply (PatchGraph p) graph =
+    patch p graph
     where
       patch ::
-        (Ord v, Show v, Show e, Eq e, Monoid e) =>
+        (Ord v, Eq e, Monoid e) =>
         Map v (Maybe [(e, v)]) ->
         AM.AdjacencyMap e v ->
         Maybe (AM.AdjacencyMap e v)
@@ -30,7 +29,7 @@ instance Patch PatchGraph where
               guard $ or changed
               pure g'
       patchVertex ::
-        (Ord v, Show v, Show e, Eq e, Monoid e, MonadState (AM.AdjacencyMap e v) m) =>
+        (Ord v, Eq e, Monoid e, MonadState (AM.AdjacencyMap e v) m) =>
         (v, Maybe [(e, v)]) ->
         m Bool
       patchVertex (v, mes) =
@@ -72,11 +71,16 @@ instance Patch PatchGraph where
                 -- on disk. But this "actula note" check is better decoupled,
                 -- and checked elsewhere. See patchedGraphVertexSet below.
                 pure True
+      postSetWithLabel :: (Ord a, Monoid e) => a -> AM.AdjacencyMap e a -> [(e, a)]
+      postSetWithLabel v g =
+        let es = toList $ AM.postSet v g
+         in es <&> \v1 ->
+              (,v1) $ AM.edgeLabel v v1 g
 
 -- | Create a patch graph that that will "copy" the given graph when applied as
 -- a patch to an empty graph.
-asPatchGraph :: Graph -> PatchGraph
-asPatchGraph (Graph am) =
+asPatchGraph :: AM.AdjacencyMap e v -> PatchGraph e v
+asPatchGraph am =
   PatchGraph $ Just . fmap swap . Map.toList <$> AM.adjacencyMap am
 
 -- | Return the vertices in the graph with the given pruning function.
@@ -86,7 +90,7 @@ asPatchGraph (Graph am) =
 --
 -- Prunes only orphan vertices. i.e., the pruning function cannot prune vertices
 -- with non-zero edges.
-patchedGraphVertexSet :: (V -> Bool) -> AM.AdjacencyMap E V -> Set V
+patchedGraphVertexSet :: forall e v. (Ord v) => (v -> Bool) -> AM.AdjacencyMap e v -> Set v
 patchedGraphVertexSet exists g =
   let nonOrphans = connectedVertices g
       orphans = AM.vertexSet g `Set.difference` nonOrphans
@@ -97,6 +101,6 @@ patchedGraphVertexSet exists g =
     -- not correspond to actual thing), this function maybe used *in conjunction
     -- with* the store of actual things, to determined the effective list of
     -- vertices.
-    connectedVertices :: AM.AdjacencyMap E V -> Set V
+    connectedVertices :: AM.AdjacencyMap e v -> Set v
     connectedVertices =
       Set.fromList . concatMap (\(_e, v1, v2) -> [v1, v2]) . AM.edgeList
