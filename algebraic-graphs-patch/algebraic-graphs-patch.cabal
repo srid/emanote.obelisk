@@ -1,47 +1,22 @@
 cabal-version:      2.4
-name:               emanote-core
+name:               algebraic-graphs-patch
 version:            0.1.0.0
 license:            AGPL-3.0-only
 author:             Sridhar Ratnakumar
 maintainer:         srid@srid.ca
-extra-source-files: CHANGELOEmanote.md
+extra-source-files: CHANGELOG.md
 
 library
   hs-source-dirs:     src
   exposed-modules:
-    Data.Conflict
-    Data.Conflict.Patch
-    Emanote.Graph
-    Emanote.Markdown.WikiLink
-    Emanote.Zk.Type
+    Algebra.Graph.Labelled.AdjacencyMap.Patch
 
   build-depends:
-    , aeson
     , algebraic-graphs
-    , async
     , base
-    , commonmark
-    , commonmark-extensions
-    , commonmark-pandoc
     , containers
-    , data-default
-    , directory
-    , filepath
-    , filepattern
-    , megaparsec
-    , pandoc-link-context
-    , pandoc-types
-    , parsec
-    , parser-combinators
-    , reflex
-    , reflex-dom-core
-    , reflex-dom-pandoc
+    , patch
     , relude
-    , shower
-    , tagged
-    , text
-    , time
-    , uri-encode
 
   default-extensions:
     NoImplicitPrelude

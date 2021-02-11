@@ -2,10 +2,10 @@
 
 module Emanote.Zk where
 
+import Algebra.Graph.Labelled.AdjacencyMap.Patch (PatchGraph)
 import Control.Concurrent (forkIO)
 import qualified Control.Concurrent.STM as STM
 import Emanote.Graph (E, Graph (..), V)
-import Emanote.Graph.Patch (PatchGraph)
 import qualified Emanote.Markdown.WikiLink as M
 import Emanote.Zk.Type
 import Reflex (PatchMap)

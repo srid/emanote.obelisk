@@ -1,11 +1,11 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module Emanote.Graph.Patch where
+module Algebra.Graph.Labelled.AdjacencyMap.Patch where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
 import qualified Data.Map.Strict as Map
+import Data.Patch.Class (Patch (..))
 import qualified Data.Set as Set
-import Reflex.Patch.Class (Patch (..))
 import Relude
 
 -- | NOTE: Patching a graph may leave orphan vertices behind. Use

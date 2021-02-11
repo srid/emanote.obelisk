@@ -4,6 +4,7 @@
 module Emanote.Pipeline (run, runNoMonitor) where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
+import qualified Algebra.Graph.Labelled.AdjacencyMap.Patch as G
 import qualified Commonmark.Syntax as CM
 import Data.Conflict (Conflict (..))
 import qualified Data.Conflict as Conflict
@@ -13,7 +14,6 @@ import Data.Tagged (Tagged (..))
 import Emanote.FileSystem (PathContent (..))
 import qualified Emanote.FileSystem as FS
 import qualified Emanote.Graph as G
-import qualified Emanote.Graph.Patch as G
 import qualified Emanote.Markdown as M
 import qualified Emanote.Markdown.WikiLink.Parser as M
 import Emanote.Zk (Zk (Zk))
