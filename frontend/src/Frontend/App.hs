@@ -134,6 +134,8 @@ pollRevUpdates ::
   -- This generally coincides with the route event, inasmuch as route change
   -- results in API fetch which returns the rev along with the API data (that
   -- rev is available in the event here)
+  --
+  -- Polling is enabled only if this event fires.
   Event t rev ->
   m (Event t rev)
 pollRevUpdates req respVal currentRevE = do

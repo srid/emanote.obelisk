@@ -1,5 +1,6 @@
 module Emanote.FileSystem
   ( directoryTreeIncremental,
+    directoryTree,
     PathContent (..),
   )
 where
@@ -29,6 +30,31 @@ mkPathContent isDir fp = do
     then pure PathContent_Dir
     else PathContent_File <$> readFileBS fp
 
+directoryTree ::
+  ( Reflex t,
+    MonadHold t m,
+    MonadFix m,
+    MonadIO m,
+    MonadIO (Performable m),
+    PostBuild t m,
+    TriggerEvent t m,
+    PerformEvent t m
+  ) =>
+  -- | File patterns to ignore.
+  [FilePattern] ->
+  -- | Directory root path.
+  FilePath ->
+  -- | A reflex @Incremental@ mapping relative path to the file's content.
+  m (Map FilePath PathContent)
+directoryTree ignores p = do
+  liftIO $ do
+    fs <- SFD.getDirectoryFilesIgnore p ["**"] ignores
+    fmap Map.fromList $
+      forM fs $ \f -> do
+        -- TODO: we should insert back the directories as well.
+        s <- mkPathContent False (p </> f)
+        pure (f, s)
+
 -- | Return a reflex Incremental reflecting the selected files in a directory tree.
 --
 -- The incremental updates as any of the files in the directory change, or get
@@ -50,14 +76,8 @@ directoryTreeIncremental ::
   -- | A reflex @Incremental@ mapping relative path to the file's content.
   m (Incremental t (PatchMap FilePath PathContent))
 directoryTreeIncremental ignores p = do
+  fs0 <- directoryTree ignores p
   fsEvents <- watchDirWithDebounce 0.1 ignores p
-  fs0 <- liftIO $ do
-    fs <- SFD.getDirectoryFilesIgnore p ["**"] ignores
-    fmap Map.fromList $
-      forM fs $ \f -> do
-        -- TODO: we should insert back the directories as well.
-        s <- mkPathContent False (p </> f)
-        pure (f, s)
   fsPatches <- performEvent $
     ffor fsEvents $ \evts ->
       -- FIXME: If the file is quickly deleted (since event; probably tmp), we

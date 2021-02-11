@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Emanote.Pipeline (run) where
+module Emanote.Pipeline (run, runNoMonitor) where
 
 import qualified Commonmark.Syntax as CM
 import Data.Conflict (Conflict (..))
@@ -9,7 +9,8 @@ import qualified Data.Conflict as Conflict
 import qualified Data.Conflict.Patch as Conflict
 import qualified Data.Map as Map
 import Data.Tagged (Tagged (..))
-import Emanote.FileSystem (PathContent (..), directoryTreeIncremental)
+import Emanote.FileSystem (PathContent (..))
+import qualified Emanote.FileSystem as FS
 import qualified Emanote.Graph as G
 import qualified Emanote.Graph.Patch as G
 import qualified Emanote.Markdown as M
@@ -23,9 +24,23 @@ import System.FilePath (dropExtension, takeExtension, takeFileName)
 import Text.Pandoc.Definition (Pandoc)
 import qualified Text.Pandoc.LinkContext as LC
 
+-- | Like `run`, but stops observing for file changes after the initial read
+runNoMonitor :: MonadHeadlessApp t m => FilePath -> m Zk
+runNoMonitor x = do
+  liftIO $ putStrLn "Running pipeline in read-only mode"
+  run' False x
+
 run :: MonadHeadlessApp t m => FilePath -> m Zk
-run inputDir = do
-  input' <- directoryTreeIncremental [".*/**"] inputDir
+run x = do
+  liftIO $ putStrLn "Running pipeline in monitor mode"
+  run' True x
+
+run' :: MonadHeadlessApp t m => Bool -> FilePath -> m Zk
+run' monitor inputDir = do
+  input' <-
+    if monitor
+      then FS.directoryTreeIncremental [".*/**"] inputDir
+      else flip holdIncremental never =<< FS.directoryTree [".*/**"] inputDir
   -- TODO: Deal with directory events sensibly, instead of ignoring them.
   let input = input' & pipeFilesOnly
   logInputChanges input

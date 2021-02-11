@@ -53,10 +53,17 @@ data Affinity
     Affinity_Orphaned
   deriving (Eq, Show, Ord, Generic, ToJSON, FromJSON)
 
+data EmanoteState
+  = -- | Not monitoring file changes
+    EmanoteState_ReadOnly
+  | -- | Moitoring filesystem, and at the given revision
+    EmanoteState_AtRev Zk.Rev
+  deriving (Eq, Show, Generic, ToJSON, FromJSON)
+
 data EmanoteApi :: * -> * where
   EmanoteApi_GetRev :: EmanoteApi Zk.Rev
-  EmanoteApi_GetNotes :: EmanoteApi (Zk.Rev, [(Affinity, EM.WikiLinkID)])
-  EmanoteApi_Note :: EM.WikiLinkID -> EmanoteApi (Zk.Rev, Note)
+  EmanoteApi_GetNotes :: EmanoteApi (EmanoteState, [(Affinity, EM.WikiLinkID)])
+  EmanoteApi_Note :: EM.WikiLinkID -> EmanoteApi (EmanoteState, Note)
 
 deriveGShow ''EmanoteApi
 deriveJSONGADT ''EmanoteApi

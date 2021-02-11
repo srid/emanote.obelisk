@@ -48,10 +48,14 @@ frontend =
             prerender (pure $ constDyn Nothing) $ do
               App.runApp $ do
                 rec xDyn <- app update
-                    let rev = fmapMaybe id $ updated $ fst <$> xDyn
+                    let rev = fmapMaybe (nonReadOnlyRev =<<) $ updated $ fst <$> xDyn
                     update <- App.pollRevUpdates EmanoteApi_GetRev rightToMaybe rev
                 pure $ snd <$> xDyn
     }
+  where
+    nonReadOnlyRev = \case
+      EmanoteState_AtRev rev -> Just rev
+      _ -> Nothing
 
 app ::
   forall t m js.
@@ -67,7 +71,7 @@ app ::
     Requester t m
   ) =>
   Event t Zk.Rev ->
-  RoutedT t (R FrontendRoute) m (Dynamic t (Maybe Zk.Rev, Maybe Text))
+  RoutedT t (R FrontendRoute) m (Dynamic t (Maybe EmanoteState, Maybe Text))
 app updateAvailable = do
   divClass "flex flex-wrap justify-center flex-row-reverse md:-mx-2 overflow-hidden" $ do
     fmap join $
@@ -85,7 +89,7 @@ app updateAvailable = do
                 [ fmap (const True) (updated req),
                   fmap (const False) resp
                 ]
-          currentRev :: Dynamic t (Maybe Zk.Rev) <- noteWidget waiting resp
+          currentRev :: Dynamic t (Maybe EmanoteState) <- noteWidget waiting resp
           titleDyn <- fmap (Just . untag) <$> askRoute
           pure $ (,) <$> currentRev <*> titleDyn
 
@@ -99,8 +103,8 @@ homeWidget ::
     Prerender js t m,
     MonadFix m
   ) =>
-  Event t (Either Text (Zk.Rev, [(Affinity, WikiLinkID)])) ->
-  RoutedT t () m (Dynamic t (Maybe Zk.Rev))
+  Event t (Either Text (EmanoteState, [(Affinity, WikiLinkID)])) ->
+  RoutedT t () m (Dynamic t (Maybe EmanoteState))
 homeWidget resp = do
   divClass "w-full md:w-1/2 overflow-hidden md:my-2 md:px-2" $ do
     elClass "h1" "text-3xl text-green-700 font-bold pb-2 mt-2" $ text "Emanote"
@@ -108,7 +112,7 @@ homeWidget resp = do
       text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display the list of notes."
     withBackendResponse resp (constDyn Nothing) $ \result -> do
       let notesDyn = snd <$> result
-          revDyn = fst <$> result
+          stateDyn = fst <$> result
       el "ul" $ do
         void $
           simpleList notesDyn $ \xDyn -> do
@@ -116,7 +120,7 @@ homeWidget resp = do
               renderWikiLink mempty (constDyn WikiLinkLabel_Unlabelled) (snd <$> xDyn)
               dyn_ $
                 affinityLabel . fst <$> xDyn
-      pure $ Just <$> revDyn
+      pure $ Just <$> stateDyn
 
 noteWidget ::
   forall js t m.
@@ -129,14 +133,14 @@ noteWidget ::
     MonadFix m
   ) =>
   Dynamic t Bool ->
-  Event t (Either Text (Zk.Rev, Note)) ->
-  RoutedT t WikiLinkID m (Dynamic t (Maybe Zk.Rev))
+  Event t (Either Text (EmanoteState, Note)) ->
+  RoutedT t WikiLinkID m (Dynamic t (Maybe EmanoteState))
 noteWidget waiting resp = do
   let divClassMayLoading cls =
         elDynClass "div" (ffor waiting $ bool cls (cls <> " animate-pulse"))
   withBackendResponse resp (constDyn Nothing) $ \result -> do
     let noteDyn = snd <$> result
-        revDyn :: Dynamic t Zk.Rev = fst <$> result
+        stateDyn :: Dynamic t EmanoteState = fst <$> result
         uplinks = _note_uplinks <$> noteDyn
         backlinks = _note_backlinks <$> noteDyn
         downlinks = _note_downlinks <$> noteDyn
@@ -179,10 +183,14 @@ noteWidget waiting resp = do
       text "Powered by "
       elAttr "a" ("href" =: url) $
         text "Emanote"
-      text " ("
-      el "tt" $ dynText $ show . untag <$> revDyn
-      text " changes since boot)"
-    pure $ Just <$> revDyn
+      dyn_ $
+        ffor stateDyn $ \case
+          EmanoteState_ReadOnly -> blank
+          EmanoteState_AtRev rev -> do
+            text " ("
+            el "tt" $ text $ show $ untag rev
+            text " changes since boot)"
+    pure $ Just <$> stateDyn
   where
     renderLinkContexts name ls ctxW = do
       let mkDivClass hide =

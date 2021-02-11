@@ -16,6 +16,7 @@ import qualified Emanote.Graph as G
 import qualified Emanote.Graph.Patch as GP
 import Emanote.Markdown.WikiLink
 import qualified Emanote.Markdown.WikiLink as W
+import qualified Emanote.Pipeline as Pipeline
 import Emanote.Zk (Zk (..))
 import qualified Emanote.Zk as Zk
 import GHC.Natural
@@ -37,7 +38,8 @@ backend =
         let getCfg k =
               maybe (error $ "Missing " <> k) (T.strip . decodeUtf8) $ Map.lookup k configs
             notesDir = toString $ getCfg "backend/notesDir"
-        Emanote.emanoteMainWith notesDir $ \zk -> do
+            readOnly = fromMaybe (error "Bad Bool value") $ readMaybe @Bool . toString $ getCfg "backend/readOnly"
+        Emanote.emanoteMainWith (bool Pipeline.run Pipeline.runNoMonitor readOnly notesDir) $ \zk -> do
           serve $ \case
             BackendRoute_Missing :/ () -> do
               modifyResponse $ setResponseStatus 404 "Missing"
@@ -49,7 +51,7 @@ backend =
                   modifyResponse $ setResponseStatus 400 "Bad Request"
                   writeText "Bad response!"
                 Just (Some emApi :: Some EmanoteApi) -> do
-                  resp <- handleEmanoteApi zk emApi
+                  resp <- handleEmanoteApi readOnly zk emApi
                   writeLBS $ has @Aeson.ToJSON emApi $ Aeson.encode resp
             BackendRoute_WebSocket :/ () -> do
               runWebSocketsSnap $ \pc -> do
@@ -61,7 +63,7 @@ backend =
                         WS.Binary v -> v
                   case m of
                     Right req -> do
-                      r <- mkTaggedResponse req $ handleEmanoteApi zk
+                      r <- mkTaggedResponse req $ handleEmanoteApi readOnly zk
                       case r of
                         Left err -> error $ toText err -- TODO
                         Right rsp ->
@@ -72,15 +74,15 @@ backend =
       _backend_routeEncoder = fullRouteEncoder
     }
 
-handleEmanoteApi :: MonadIO m => Zk -> EmanoteApi a -> m a
-handleEmanoteApi zk@Zk {..} = \case
+handleEmanoteApi :: MonadIO m => Bool -> Zk -> EmanoteApi a -> m a
+handleEmanoteApi readOnly zk@Zk {..} = \case
   EmanoteApi_GetRev -> do
     Zk.getRev zk
   EmanoteApi_GetNotes -> do
     liftIO $ putStrLn "GetNotes!"
     zs <- Zk.getZettels zk
     graph <- Zk.getGraph zk
-    rev <- Zk.getRev zk
+    estate <- if readOnly then pure EmanoteState_ReadOnly else EmanoteState_AtRev <$> Zk.getRev zk
     let getVertices = GP.patchedGraphVertexSet (isJust . flip Map.lookup zs) . G.unGraph
         orphans =
           let indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
@@ -91,14 +93,14 @@ handleEmanoteApi zk@Zk {..} = \case
             0 -> Affinity_Root
             n -> Affinity_HasParents (intToNatural n)
     pure $
-      (rev,) $
+      (estate,) $
         sortOn Down $
           Set.toList (getVertices graph) <&> getAffinity &&& id
   EmanoteApi_Note wikiLinkID -> do
     liftIO $ putStrLn $ "Note! " <> show wikiLinkID
     zs <- Zk.getZettels zk
     graph <- Zk.getGraph zk
-    rev <- Zk.getRev zk
+    estate <- if readOnly then pure EmanoteState_ReadOnly else EmanoteState_AtRev <$> Zk.getRev zk
     let mz = Map.lookup wikiLinkID zs
     let mkLinkCtxList f = do
           let ls = uncurry mkLinkContext <$> G.connectionsOf f wikiLinkID graph
@@ -114,7 +116,7 @@ handleEmanoteApi zk@Zk {..} = \case
             (mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l) && not (W.isBranch l))) -- Backlinks (sans uplinks / downlinks)
             (mkLinkCtxList W.isBranch) -- Downlinks
             (mkLinkCtxList W.isParent) -- Uplinks
-    pure (rev, note)
+    pure (estate, note)
   where
     mkLinkContext :: (WikiLinkLabel, [Block]) -> WikiLinkID -> LinkContext
     mkLinkContext (_linkcontext_label, Pandoc mempty -> _linkcontext_ctx) _linkcontext_id =
