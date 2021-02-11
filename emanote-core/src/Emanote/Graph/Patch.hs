@@ -35,10 +35,16 @@ instance Patch PatchGraph where
         m Bool
       patchVertex (v, mes) =
         case mes of
-          Nothing ->
+          Nothing -> do
+            g <- get
             gets (AM.hasVertex v) >>= \case
-              True -> modify (AM.removeVertex v) >> pure True
-              False -> pure False
+              True -> do
+                if Set.null $ AM.preSet v g
+                  then -- Delete only if no other vertex is connecting to us.
+                    modify (AM.removeVertex v) >> pure True
+                  else pure False
+              False ->
+                pure False
           Just es -> do
             g <- get
             let esOld = toList $ postSetWithLabel v g
