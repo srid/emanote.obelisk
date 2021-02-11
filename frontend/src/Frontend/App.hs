@@ -30,15 +30,27 @@ import Relude
 
 type ValidEnc = Encoder Identity Identity (R (FullRoute BackendRoute FrontendRoute)) PageName
 
-withEncoderAndRoute :: HasConfigs m => (ValidEnc -> Text -> m a) -> m a
-withEncoderAndRoute f = do
+withEndpoint :: HasConfigs m => (Either ApiEndpoint WebSocketEndpoint -> m a) -> m a
+withEndpoint f = do
   let enc :: Either Text ValidEnc = checkEncoder fullRouteEncoder
   route <- getTextConfig "common/route"
-  case (enc, route) of
-    (Left _, _) -> error "Routes are invalid!"
-    (_, Nothing) -> error "Couldn't load common/route config file"
-    (Right validEnc, Just host) -> do
-      f validEnc host
+  mRequestType <- fmap T.strip <$> getTextConfig "frontend/requestType"
+  case (enc, route, mRequestType) of
+    (Left _, _, _) -> error "Routes are invalid!"
+    (_, Nothing, _) -> error "Couldn't load common/route config file"
+    (_, _, Nothing) -> error "Couldn't load frontend/requestType config file"
+    (Right validEnc, Just host, Just "ws") -> do
+      let wsEndpoint =
+            Right $
+              T.replace "http" "ws" host
+                <> renderBackendRoute validEnc (BackendRoute_WebSocket :/ ())
+      f wsEndpoint
+    (Right validEnc, Just _host, Just "xhr") -> do
+      let xhrEndpoint =
+            Left $ renderBackendRoute validEnc (BackendRoute_Api :/ ())
+      f xhrEndpoint
+    (Right _validEnc, Just _host, Just _) -> do
+      error "Invalid value in frontend/requestType"
 
 runApp ::
   ( HasConfigs m,
@@ -50,14 +62,7 @@ runApp ::
   RoutedT t (R FrontendRoute) (RequesterT t EmanoteApi (Either Text) m) a ->
   m a
 runApp f = do
-  withEncoderAndRoute $ \validEnc host -> do
-    -- Websocket vs API endpoint. Pick one, during experimental phase.
-    let endpoint =
-          Right $
-            T.replace "http" "ws" host
-              <> renderBackendRoute validEnc (BackendRoute_WebSocket :/ ())
-        _endpoint =
-          Left $ renderBackendRoute validEnc (BackendRoute_Api :/ ())
+  withEndpoint $ \endpoint -> do
     r :: Dynamic t (R FrontendRoute) <- askRoute
     startEmanoteNet endpoint $ runRoutedT f r
 
