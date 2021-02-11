@@ -73,6 +73,12 @@ instance Patch PatchGraph where
                 -- and checked elsewhere. See patchedGraphVertexSet below.
                 pure True
 
+-- | Create a patch graph that that will "copy" the given graph when applied as
+-- a patch to an empty graph.
+asPatchGraph :: Graph -> PatchGraph
+asPatchGraph (Graph am) =
+  PatchGraph $ Just . fmap swap . Map.toList <$> AM.adjacencyMap am
+
 -- | Return the vertices in the graph with the given pruning function.
 --
 -- Use this function to accomodate for PatchGraph's idiosyncratic behaviour of

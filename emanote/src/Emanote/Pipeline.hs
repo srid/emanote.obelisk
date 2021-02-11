@@ -21,6 +21,8 @@ import Reflex.Host.Headless (MonadHeadlessApp)
 import qualified Reflex.TIncremental as TInc
 import Relude
 import System.FilePath (dropExtension, takeExtension, takeFileName)
+import qualified Text.Megaparsec as M
+import qualified Text.Megaparsec.Char as M
 import Text.Pandoc.Definition (Pandoc)
 import qualified Text.Pandoc.LinkContext as LC
 
@@ -47,13 +49,13 @@ run' monitor inputDir = do
   let pandocOut =
         input
           & pipeFilterFilename (\fn -> takeExtension fn == ".md")
-          -- & pipeInjectDirZettels
           & pipeFlattenFsTree (Tagged . toText . dropExtension . takeFileName)
           & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
       graphOut =
         pandocOut
           & pipeExtractLinks
           & pipeGraph
+          & pipeCreateCalendar
   Zk
     <$> TInc.mirrorIncremental pandocOut
     <*> TInc.mirrorIncremental graphOut
@@ -148,6 +150,51 @@ pipeGraph = do
     f p =
       G.PatchGraph . unPatchMap $
         fmap (first one) <$> p
+
+-- | WIP: Tag daily notes with month zettels ("2020-02").
+--
+-- The month zettels themselves will be tagged with year zettels ("2020"), if
+-- the month zettel exists on disk (otherwise won't).
+pipeCreateCalendar ::
+  Reflex t =>
+  Incremental t G.PatchGraph ->
+  Incremental t G.PatchGraph
+pipeCreateCalendar =
+  unsafeMapIncremental
+    (fromMaybe G.empty . flip apply G.empty . f . G.asPatchGraph)
+    f
+  where
+    f :: G.PatchGraph -> G.PatchGraph
+    f =
+      let liftNote wIdParser diff =
+            G.PatchGraph $
+              flip Map.mapWithKey (G.unPatchGraph diff) $ \(Tagged wId) ->
+                fmap $ \es ->
+                  case parse wIdParser wId of
+                    Nothing ->
+                      es
+                    Just parent ->
+                      let edge = (M.WikiLinkLabel_Tag, mempty)
+                       in ([edge], Tagged parent) : es
+       in -- FIXME: Year entries won't be created if months zettels don't exist on disk
+          liftNote yearFromMonth . liftNote monthFromDate
+    yearFromMonth :: M.Parsec Void Text Text
+    yearFromMonth = do
+      year <- num 4 <* dash
+      _month <- num 2
+      pure year
+    monthFromDate :: M.Parsec Void Text Text
+    monthFromDate = do
+      year <- num 4 <* dash
+      month <- num 2 <* dash
+      _day <- num 2
+      pure $ year <> "-" <> month
+    dash = M.char '-'
+    num n =
+      toText <$> M.count n M.digitChar
+    parse :: forall e s r. (M.Stream s, Ord e) => M.Parsec e s r -> s -> Maybe r
+    parse p =
+      M.parseMaybe (p <* M.eof)
 
 -- | Like `unsafeMapIncremental` but the patch function also takes the old
 -- target.
