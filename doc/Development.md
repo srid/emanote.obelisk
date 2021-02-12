@@ -1,7 +1,7 @@
 To run locally,
 
 1. Install https://github.com/obsidiansystems/obelisk
-1. Build CSS by side: `bin/css`
+1. Build CSS by side: `bin/css` (optional; run if you are modifying css)
 1. Run the development server: `ob run`
 
 Go to <http://localhost:8000/> ([Don't use Firefox](https://github.com/reflex-frp/reflex-examples/issues/30#issuecomment-462827693))

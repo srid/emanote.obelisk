@@ -76,7 +76,7 @@
     @apply border-l-4 border-gray-500 ml-2 p-2 bg-gray-100;
   }
   div.pandoc div.pandoc-code {
-    @apply bg-gray-100 my-2 p-2 rounded shadow overflow-y-auto;
+    @apply bg-gray-900 my-2 p-2 rounded shadow overflow-y-auto;
   }
   div.pandoc div#footnotes {
     @apply bg-gray-100 text-gray-700 border-t-2 p-2 mt-4;

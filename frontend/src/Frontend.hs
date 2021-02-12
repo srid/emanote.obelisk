@@ -25,7 +25,7 @@ import Reflex.Dom.Core hiding (Link)
 import qualified Reflex.Dom.Pandoc as PR
 import Relude
 import Skylighting.Format.HTML (styleToCss)
-import Skylighting.Styles (tango)
+import qualified Skylighting.Styles as SkylightingStyles
 import Text.Pandoc.Definition (Block (Para, Plain), Inline (Link), Pandoc (Pandoc))
 
 -- This runs in a monad that can be run on the client or the server.
@@ -40,7 +40,7 @@ frontend =
         el "title" $ do
           dynText $ fromMaybe "..." <$> titDyn
           text " | Emanote"
-        elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss tango
+        elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss SkylightingStyles.breezeDark
         Static.includeAssets,
       _frontend_body = do
         divClass "min-h-screen md:container mx-auto px-4" $ do
