@@ -9,8 +9,8 @@ Go to <http://localhost:8000/> ([Don't use Firefox](https://github.com/reflex-fr
 Note:
 
 - Edit `config/backend/notesDir` to run on your own notebook instead of on `./doc`.
-- The development server may be glitchy, and slow at times (due to websocket over jsaddle). 
-  - You can address this by disabling websockets; set `config/frontend/requestType` to `xhr`.
+- The development server may be glitchy, and slow at times (due to jsaddle being unreliable). 
+  - You can try disabling websockets; set `config/frontend/requestType` to `xhr`.
   - The full build doesn't suffer from this issue; so you should use websockets there.
 
 To do a **full build**, refer to Obelisk's deployment guide.

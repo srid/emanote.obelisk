@@ -21,12 +21,12 @@ import qualified Frontend.Static as Static
 import Obelisk.Frontend
 import Obelisk.Route
 import Obelisk.Route.Frontend
-import Reflex.Dom.Core
+import Reflex.Dom.Core hiding (Link)
 import qualified Reflex.Dom.Pandoc as PR
 import Relude
 import Skylighting.Format.HTML (styleToCss)
 import Skylighting.Styles (tango)
-import Text.Pandoc.Definition (Pandoc)
+import Text.Pandoc.Definition (Block (Para, Plain), Inline (Link), Pandoc (Pandoc))
 
 -- This runs in a monad that can be run on the client or the server.
 -- To run code in a pure client or pure server context, use one of the
@@ -166,7 +166,7 @@ noteWidget waiting resp = do
                         dyn_ $ renderPandoc <$> docDyn
       renderLinkContexts "Downlinks" downlinks $ \ctx -> do
         divClass "opacity-50 hover:opacity-100 text-sm" $ do
-          dyn_ $ renderPandoc <$> ctx
+          renderLinkContextBody ctx
     divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6" $ do
       divClass "" $ do
         routeLink (FrontendRoute_Main :/ ()) $
@@ -174,10 +174,10 @@ noteWidget waiting resp = do
             text "Home"
       renderLinkContexts "Uplinks" uplinks $ \ctx -> do
         divClass "opacity-50 hover:opacity-100 text-sm" $ do
-          dyn_ $ renderPandoc <$> ctx
+          renderLinkContextBody ctx
       renderLinkContexts "Backlinks" backlinks $ \ctx -> do
         divClass "opacity-50 hover:opacity-100 text-sm" $ do
-          dyn_ $ renderPandoc <$> ctx
+          renderLinkContextBody ctx
     divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2" $ do
       let url = "rad:git:hwd1yred516gwfzodm7cnyeyh1b17s4xw7jex4obi6rdt1c3xygo4r4cxbo"
       text "Powered by "
@@ -192,6 +192,13 @@ noteWidget waiting resp = do
             text " changes since boot)"
     pure $ Just <$> stateDyn
   where
+    -- A link context that has nothing but a single wiki-link
+    singleLinkContext = \case
+      -- Wiki-link on its own line (paragraph)
+      Pandoc _ [Para [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
+      -- Wiki-link on its own in a list item
+      Pandoc _ [Plain [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
+      _ -> False
     renderLinkContexts name ls ctxW = do
       let mkDivClass hide =
             T.intercalate " " $
@@ -208,10 +215,14 @@ noteWidget waiting resp = do
             simpleList ls $ \lDyn -> do
               divClass "pt-1" $ do
                 divClass "linkheader" $
-                  renderLinkContext ("class" =: "text-green-700") lDyn
+                  renderLinkContextLink ("class" =: "text-green-700") lDyn
                 ctxW $ _linkcontext_ctx <$> lDyn
-    renderLinkContext attrs lDyn = do
+    renderLinkContextLink attrs lDyn = do
       renderWikiLink attrs (_linkcontext_label <$> lDyn) (_linkcontext_id <$> lDyn)
+    renderLinkContextBody ctx = do
+      -- dynText $ show <$> ctx
+      elDynClass "div" (ffor (singleLinkContext <$> ctx) $ bool "" "hidden") $
+        dyn_ $ renderPandoc <$> ctx
 
 renderWikiLink ::
   ( PostBuild t m,
