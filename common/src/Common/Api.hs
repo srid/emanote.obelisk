@@ -19,7 +19,6 @@ import Emanote.Zk.Type (Zettel)
 import qualified Emanote.Zk.Type as Zk
 import Reflex.Dom.Core
 import Relude
-import Text.Pandoc.Definition
 
 data Note = Note
   { _note_wikiLinkID :: EM.WikiLinkID,
@@ -34,8 +33,10 @@ data Note = Note
 
 data LinkContext = LinkContext
   { _linkcontext_id :: EM.WikiLinkID,
-    _linkcontext_label :: EM.WikiLinkLabel,
-    _linkcontext_ctx :: Maybe Pandoc
+    -- | In the case of more than one link to the same note, this label
+    -- represents the merged label (using Semigroup).
+    _linkcontext_effectiveLabel :: EM.WikiLinkLabel,
+    _linkcontext_ctxList :: [EM.WikiLinkContext]
   }
   deriving (Eq, Generic, ToJSON, FromJSON)
 

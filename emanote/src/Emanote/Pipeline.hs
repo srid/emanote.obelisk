@@ -16,6 +16,7 @@ import Emanote.FileSystem (PathContent (..))
 import qualified Emanote.FileSystem as FS
 import qualified Emanote.Graph as G
 import qualified Emanote.Markdown as M
+import qualified Emanote.Markdown.WikiLink as M
 import qualified Emanote.Markdown.WikiLink.Parser as M
 import Emanote.Zk (Zk (Zk))
 import Reflex hiding (mapMaybe)
@@ -123,23 +124,26 @@ pipeExtractLinks ::
   forall t f g h.
   (Reflex t, Functor f, Functor g, Functor h, Foldable f, Foldable g, Foldable h) =>
   Incremental t (PatchMap M.WikiLinkID (f (g (h Pandoc)))) ->
-  Incremental t (PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)])
+  Incremental t (PatchMap M.WikiLinkID [(M.WikiLink, M.WikiLinkID)])
 pipeExtractLinks = do
   unsafeMapIncremental
     (Map.map $ (concatMap . concatMap . concatMap) f)
     (PatchMap . Map.map ((fmap . concatMap . concatMap . concatMap) f) . unPatchMap)
   where
     f doc =
-      let links = LC.queryLinksWithContext doc
+      let linkMap = LC.queryLinksWithContext doc
           getTitleAttr =
             Map.lookup "title" . Map.fromList
-       in (\(url, (getTitleAttr -> tit, ctx)) -> first (,ctx) <$> M.parseWikiLinkUrl tit url)
-            `fmapMaybe` Map.toList links
+       in concat $
+            ffor (Map.toList linkMap) $ \(url, urlLinks) -> do
+              fforMaybe (toList urlLinks) $ \(getTitleAttr -> tit, ctx) -> do
+                (lbl, wId) <- M.parseWikiLinkUrl tit url
+                pure (M.mkWikiLink lbl ctx, wId)
 
 pipeGraph ::
   forall t.
   (Reflex t) =>
-  Incremental t (PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)]) ->
+  Incremental t (PatchMap M.WikiLinkID [(M.WikiLink, M.WikiLinkID)]) ->
   Incremental t (G.PatchGraph G.E G.V)
 pipeGraph = do
   unsafeMapIncremental
@@ -147,7 +151,7 @@ pipeGraph = do
     f
   where
     f ::
-      PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)] ->
+      PatchMap M.WikiLinkID [(M.WikiLink, M.WikiLinkID)] ->
       G.PatchGraph G.E G.V
     f p =
       let pairs = Map.toList $ unPatchMap p
@@ -177,7 +181,7 @@ pipeCreateCalendar =
             G.PatchGraph $
               flip mapMaybe (Set.toList $ G.modifiedOrAddedVertices d) $ \wId -> do
                 (Tagged -> parent) <- parse wIdParser (untag wId)
-                pure $ G.ModifyGraph_AddEdge (one (M.WikiLinkLabel_Tag, mempty)) wId parent
+                pure $ G.ModifyGraph_AddEdge (one $ (M.WikiLink M.WikiLinkLabel_Tag mempty)) wId parent
           monthDiff = liftNote monthFromDate diff
           -- Include monthDiff here, so as to 'lift' those ghost month zettels further.
           yearDiff = liftNote yearFromMonth (diff <> monthDiff)

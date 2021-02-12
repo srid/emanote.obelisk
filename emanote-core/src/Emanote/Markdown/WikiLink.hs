@@ -10,7 +10,7 @@ import Data.Tagged (Tagged (..))
 import qualified Data.Text as T
 import qualified Network.URI.Encode as URIEncode
 import Relude
-import Text.Pandoc.Definition (Block)
+import Text.Pandoc.Definition
 import Text.Read
 import qualified Text.Show (Show (..))
 
@@ -38,6 +38,13 @@ data WikiLinkLabel
     WikiLinkLabel_Tag
   deriving (Eq, Ord, Generic, ToJSON, FromJSON)
 
+instance Semigroup WikiLinkLabel where
+  WikiLinkLabel_Unlabelled <> x = x
+  x <> WikiLinkLabel_Unlabelled = x
+  WikiLinkLabel_Tag <> _ = WikiLinkLabel_Tag
+  _ <> WikiLinkLabel_Tag = WikiLinkLabel_Tag
+  WikiLinkLabel_Branch <> WikiLinkLabel_Branch = WikiLinkLabel_Branch
+
 -- | The AST "surrounding" a wiki-link (any link, in fact)
 type WikiLinkContext = [Block]
 
@@ -59,6 +66,30 @@ instance Read WikiLinkLabel where
     | s == show WikiLinkLabel_Tag =
       [(WikiLinkLabel_Tag, "")]
     | otherwise = []
+
+-- | Represent a Wiki link without the target (WikiLinkID)
+data WikiLink = WikiLink
+  { _wikilink_label :: WikiLinkLabel,
+    _wikilink_ctx :: Maybe WikiLinkContext
+  }
+  deriving (Eq, Ord, Generic, ToJSON, FromJSON)
+
+-- Just for debugging
+instance Show WikiLink where
+  show (WikiLink lbl mctx) =
+    "WikiLink[" <> show lbl <> "][ctx:" <> bool "no" "yes" (isJust mctx)
+
+mkWikiLink :: WikiLinkLabel -> WikiLinkContext -> WikiLink
+mkWikiLink lbl ctx =
+  WikiLink lbl $ guard (not $ singleLinkContext ctx) >> pure ctx
+  where
+    -- A link context that has nothing but a single wiki-link
+    singleLinkContext = \case
+      -- Wiki-link on its own line (paragraph)
+      [Para [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
+      -- Wiki-link on its own in a list item
+      [Plain [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
+      _ -> False
 
 renderWikiLinkLabel :: WikiLinkLabel -> Text
 renderWikiLinkLabel = show

@@ -44,7 +44,8 @@
     @apply p-2;
   }
 
-  div.pandoc p {
+  /* Only on note's pandoc */
+  div.notePandoc > div.pandoc p {
     @apply mb-3;
   }
   div.pandoc ul, div.pandoc ol {
@@ -109,7 +110,9 @@
     @apply hidden;
   }
 
-  /* Linking */
+  /* Link types
+     Display these only in the Pandoc note (not in backlinks panel, etc.)
+  */
   div.pandoc a[title="link:branch"]::after {
     @apply text-gray-500;
     content: "#";

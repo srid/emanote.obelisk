@@ -627,7 +627,9 @@ div.pandoc table th, div.pandoc table td {
   padding: 0.5rem;
 }
 
-div.pandoc p {
+/* Only on note's pandoc */
+
+div.notePandoc > div.pandoc p {
   margin-bottom: 0.75rem;
 }
 
@@ -739,7 +741,9 @@ div.pandoc div#footnotes ol li[id^="fn"] a[href^="#fnref"] {
   display: none;
 }
 
-/* Linking */
+/* Link types
+     Display these only in the Pandoc note (not in backlinks panel, etc.)
+  */
 
 div.pandoc a[title="link:branch"]::after {
   --tw-text-opacity: 1;

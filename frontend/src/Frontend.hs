@@ -26,7 +26,7 @@ import qualified Reflex.Dom.Pandoc as PR
 import Relude
 import Skylighting.Format.HTML (styleToCss)
 import qualified Skylighting.Styles as SkylightingStyles
-import Text.Pandoc.Definition (Pandoc)
+import Text.Pandoc.Definition (Pandoc (..))
 
 -- This runs in a monad that can be run on the client or the server.
 -- To run code in a pure client or pure server context, use one of the
@@ -163,7 +163,8 @@ noteWidget waiting resp = do
                     ffor edoc $ \case
                       Left parseErr -> dynText $ show <$> parseErr
                       Right docDyn -> do
-                        dyn_ $ renderPandoc <$> docDyn
+                        divClass "notePandoc" $
+                          dyn_ $ renderPandoc <$> docDyn
       renderLinkContexts "Tagged by" downlinks $ \ctx -> do
         divClass "opacity-50 hover:opacity-100 text-sm" $ do
           renderLinkContextBody ctx
@@ -179,7 +180,7 @@ noteWidget waiting resp = do
         divClass "opacity-50 hover:opacity-100 text-sm" $ do
           renderLinkContextBody ctx
     divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2" $ do
-      let url = "rad:git:hwd1yred516gwfzodm7cnyeyh1b17s4xw7jex4obi6rdt1c3xygo4r4cxbo"
+      let url = "https://github.com/srid/emanote"
       text "Powered by "
       elAttr "a" ("href" =: url) $
         text "Emanote"
@@ -209,16 +210,17 @@ noteWidget waiting resp = do
               divClass "pt-1" $ do
                 divClass "linkheader" $
                   renderLinkContextLink ("class" =: "text-green-700") lDyn
-                ctxW $ _linkcontext_ctx <$> lDyn
+                ctxW $ _linkcontext_ctxList <$> lDyn
     renderLinkContextLink attrs lDyn = do
-      renderWikiLink attrs (_linkcontext_label <$> lDyn) (_linkcontext_id <$> lDyn)
-    renderLinkContextBody mctx = do
-      x <- maybeDyn mctx
-      dyn_ $
-        ffor x $ \case
-          Nothing -> blank
-          Just ctx ->
-            dyn_ $ renderPandoc <$> ctx
+      renderWikiLink
+        attrs
+        (_linkcontext_effectiveLabel <$> lDyn)
+        (_linkcontext_id <$> lDyn)
+    renderLinkContextBody (ctxs :: Dynamic t [WikiLinkContext]) = do
+      void $
+        simpleList ctxs $ \ctx -> do
+          divClass "mb-1 pb-1 border-b-2 border-black-200" $
+            dyn_ $ renderPandoc . Pandoc mempty <$> ctx
 
 renderWikiLink ::
   ( PostBuild t m,

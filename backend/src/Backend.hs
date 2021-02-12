@@ -28,7 +28,6 @@ import Obelisk.Route
 import Reflex.Dom.GadtApi.WebSocket (mkTaggedResponse)
 import Relude
 import Snap.Core
-import Text.Pandoc.Definition hiding (Note)
 
 backend :: Backend BackendRoute FrontendRoute
 backend =
@@ -90,7 +89,16 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
     graph <- Zk.getGraph zk
     let mz = Map.lookup wikiLinkID zs
         mkLinkCtxList f = do
-          let ls = uncurry mkLinkContext <$> G.connectionsOf f wikiLinkID graph
+          let conns =
+                Map.toList $
+                  Map.fromListWith (<>) $
+                    fmap (second one . swap) $
+                      G.connectionsOf f wikiLinkID graph
+              ls =
+                conns <&> \(_linkcontext_id, wls :: NonEmpty WikiLink) ->
+                  let _linkcontext_effectiveLabel = sconcat $ _wikilink_label <$> wls
+                      _linkcontext_ctxList = mapMaybe _wikilink_ctx $ toList wls
+                   in LinkContext {..}
           -- Sort in reverse order so that daily notes (calendar) are pushed down.
           sortOn Down ls
         note =
@@ -102,10 +110,6 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
             (mkLinkCtxList W.isUplink)
     pure (estate, note)
   where
-    mkLinkContext :: (WikiLinkLabel, [Block]) -> WikiLinkID -> LinkContext
-    mkLinkContext (_linkcontext_label, Pandoc mempty -> ctx) _linkcontext_id =
-      let _linkcontext_ctx = guard (not $ singleLinkContext ctx) >> pure ctx
-       in LinkContext {..}
     getEmanoteState :: m EmanoteState
     getEmanoteState = do
       if readOnly
@@ -130,10 +134,3 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
                 Affinity_HasParents _ -> Nothing
                 aff -> Just (aff, z)
       pure topLevelNotes
-    -- A link context that has nothing but a single wiki-link
-    singleLinkContext = \case
-      -- Wiki-link on its own line (paragraph)
-      Pandoc _ [Para [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
-      -- Wiki-link on its own in a list item
-      Pandoc _ [Plain [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
-      _ -> False
