@@ -595,6 +595,10 @@ div.pandoc input[type="checkbox"] {
   margin-right: 0.5rem;
 }
 
+div.pandoc code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 div.pandoc table  {
   --tw-border-opacity: 1;
   border-color: rgba(0, 0, 0, var(--tw-border-opacity));
@@ -623,9 +627,16 @@ div.pandoc table th, div.pandoc table td {
   padding: 0.5rem;
 }
 
-div.pandoc ul {
-  padding-bottom: 0.5rem;
+div.pandoc p {
+  margin-bottom: 0.75rem;
+}
+
+div.pandoc ul, div.pandoc ol {
   padding-left: 1rem;
+}
+
+div.pandoc > ul, div.pandoc > ol {
+  margin-bottom: 0.75rem;
 }
 
 div.pandoc ul {
@@ -642,13 +653,15 @@ div.pandoc h1 {
 }
 
 div.pandoc h2, div.pandoc h3, div.pandoc h4, div.pandoc h5, div.pandoc h6 {
-  margin-bottom: 0.5rem;
-  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 div.pandoc h2 {
   font-size: 1.875rem;
   line-height: 2.25rem;
+  text-decoration: underline;
+  -webkit-text-decoration-color: rgba(10,10,10,0.1);
+          text-decoration-color: rgba(10,10,10,0.1);
 }
 
 div.pandoc h3 {
@@ -691,6 +704,12 @@ div.pandoc div.pandoc-code {
   padding: 0.5rem;
   --tw-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+div.pandoc div#footnotes::before {
+  content: "Footnotes";
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 div.pandoc div#footnotes {

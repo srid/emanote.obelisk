@@ -107,7 +107,7 @@ homeWidget ::
   RoutedT t () m (Dynamic t (Maybe EmanoteState))
 homeWidget resp = do
   divClass "w-full md:w-1/2 overflow-hidden md:my-2 md:px-2" $ do
-    elClass "h1" "text-3xl text-green-700 font-bold pb-2 mt-2" $ text "Emanote"
+    elClass "h1" "text-3xl text-green-700 font-bold pb-2 mt-4" $ text "Emanote"
     elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
       text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display root folgezettels and orphans (if any)."
     withBackendResponse resp (constDyn Nothing) $ \result -> do
@@ -145,7 +145,7 @@ noteWidget waiting resp = do
         backlinks = _note_backlinks <$> noteDyn
         downlinks = _note_downlinks <$> noteDyn
     divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6" $ do
-      elClass "h1" "text-3xl text-green-700 font-bold pb-2 mt-2" $ do
+      elClass "h1" "text-3xl text-green-700 font-bold mt-2 mb-4" $ do
         r <- askRoute
         dynText $ untag <$> r
       mzettel <- maybeDyn $ _note_zettel <$> noteDyn
