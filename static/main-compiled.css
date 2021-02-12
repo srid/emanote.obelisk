@@ -696,7 +696,7 @@ div.pandoc blockquote {
 
 div.pandoc div.pandoc-code {
   --tw-bg-opacity: 1;
-  background-color: rgba(17, 24, 39, var(--tw-bg-opacity));
+  background-color: rgba(243, 244, 246, var(--tw-bg-opacity));
   border-radius: 0.25rem;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
