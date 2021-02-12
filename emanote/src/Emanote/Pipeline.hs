@@ -159,7 +159,7 @@ pipeGraph = do
                 Just es ->
                   G.ModifyGraph_ReplaceVertexWithSuccessors k (first one <$> es)
 
--- | WIP: Tag daily notes with month zettels ("2020-02").
+-- | Tag daily notes with month zettels ("2020-02").
 --
 -- The month zettels themselves will be tagged with year zettels ("2020"), if
 -- the month zettel exists on disk (otherwise won't).
@@ -180,11 +180,13 @@ pipeCreateCalendar =
               flip mapMaybe (Set.toList $ G.modifiedOrAddedVertices d) $ \wId -> do
                 (Tagged -> parent) <- parse wIdParser (untag wId)
                 pure $ G.ModifyGraph_AddEdge (one (M.WikiLinkLabel_Tag, mempty)) wId parent
-       in -- FIXME: Year entries won't be created if months zettels don't exist on disk
-          mconcat
+          monthDiff = liftNote monthFromDate diff
+          -- Include monthDiff here, so as to 'lift' those ghost month zettels further.
+          yearDiff = liftNote yearFromMonth (diff <> monthDiff)
+       in mconcat
             [ diff,
-              liftNote monthFromDate diff,
-              liftNote yearFromMonth diff
+              monthDiff,
+              yearDiff
             ]
     yearFromMonth :: M.Parsec Void Text Text
     yearFromMonth = do
