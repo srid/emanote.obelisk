@@ -26,7 +26,7 @@ import qualified Reflex.Dom.Pandoc as PR
 import Relude
 import Skylighting.Format.HTML (styleToCss)
 import qualified Skylighting.Styles as SkylightingStyles
-import Text.Pandoc.Definition (Block (Para, Plain), Inline (Link), Pandoc (Pandoc))
+import Text.Pandoc.Definition (Pandoc)
 
 -- This runs in a monad that can be run on the client or the server.
 -- To run code in a pure client or pure server context, use one of the
@@ -40,7 +40,7 @@ frontend =
         el "title" $ do
           dynText $ fromMaybe "..." <$> titDyn
           text " | Emanote"
-        elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss SkylightingStyles.breezeDark
+        elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss SkylightingStyles.espresso
         Static.includeAssets,
       _frontend_body = do
         divClass "min-h-screen md:container mx-auto px-4" $ do
@@ -192,13 +192,6 @@ noteWidget waiting resp = do
             text " changes since boot)"
     pure $ Just <$> stateDyn
   where
-    -- A link context that has nothing but a single wiki-link
-    singleLinkContext = \case
-      -- Wiki-link on its own line (paragraph)
-      Pandoc _ [Para [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
-      -- Wiki-link on its own in a list item
-      Pandoc _ [Plain [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
-      _ -> False
     renderLinkContexts name ls ctxW = do
       let mkDivClass hide =
             T.intercalate " " $
@@ -219,10 +212,13 @@ noteWidget waiting resp = do
                 ctxW $ _linkcontext_ctx <$> lDyn
     renderLinkContextLink attrs lDyn = do
       renderWikiLink attrs (_linkcontext_label <$> lDyn) (_linkcontext_id <$> lDyn)
-    renderLinkContextBody ctx = do
-      -- dynText $ show <$> ctx
-      elDynClass "div" (ffor (singleLinkContext <$> ctx) $ bool "" "hidden") $
-        dyn_ $ renderPandoc <$> ctx
+    renderLinkContextBody mctx = do
+      x <- maybeDyn mctx
+      dyn_ $
+        ffor x $ \case
+          Nothing -> blank
+          Just ctx ->
+            dyn_ $ renderPandoc <$> ctx
 
 renderWikiLink ::
   ( PostBuild t m,

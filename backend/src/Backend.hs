@@ -28,7 +28,7 @@ import Obelisk.Route
 import Reflex.Dom.GadtApi.WebSocket (mkTaggedResponse)
 import Relude
 import Snap.Core
-import Text.Pandoc.Definition (Block, Pandoc (..))
+import Text.Pandoc.Definition hiding (Note)
 
 backend :: Backend BackendRoute FrontendRoute
 backend =
@@ -103,8 +103,9 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
     pure (estate, note)
   where
     mkLinkContext :: (WikiLinkLabel, [Block]) -> WikiLinkID -> LinkContext
-    mkLinkContext (_linkcontext_label, Pandoc mempty -> _linkcontext_ctx) _linkcontext_id =
-      LinkContext {..}
+    mkLinkContext (_linkcontext_label, Pandoc mempty -> ctx) _linkcontext_id =
+      let _linkcontext_ctx = guard (not $ singleLinkContext ctx) >> pure ctx
+       in LinkContext {..}
     getEmanoteState :: m EmanoteState
     getEmanoteState = do
       if readOnly
@@ -129,3 +130,10 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
                 Affinity_HasParents _ -> Nothing
                 aff -> Just (aff, z)
       pure topLevelNotes
+    -- A link context that has nothing but a single wiki-link
+    singleLinkContext = \case
+      -- Wiki-link on its own line (paragraph)
+      Pandoc _ [Para [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
+      -- Wiki-link on its own in a list item
+      Pandoc _ [Plain [Link _ _ (_, linkTitle)]] | "link:" `T.isPrefixOf` linkTitle -> True
+      _ -> False

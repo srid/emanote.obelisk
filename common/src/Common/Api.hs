@@ -35,7 +35,7 @@ data Note = Note
 data LinkContext = LinkContext
   { _linkcontext_id :: EM.WikiLinkID,
     _linkcontext_label :: EM.WikiLinkLabel,
-    _linkcontext_ctx :: Pandoc
+    _linkcontext_ctx :: Maybe Pandoc
   }
   deriving (Eq, Generic, ToJSON, FromJSON)
 
