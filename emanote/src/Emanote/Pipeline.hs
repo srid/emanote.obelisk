@@ -159,10 +159,8 @@ pipeGraph = do
                 Just es ->
                   G.ModifyGraph_ReplaceVertexWithSuccessors k (first one <$> es)
 
--- | Tag daily notes with month zettels ("2020-02").
---
--- The month zettels themselves will be tagged with year zettels ("2020"), if
--- the month zettel exists on disk (otherwise won't).
+-- | Tag daily notes with month zettels ("2020-02"), which are tagged further
+-- with year zettels ("2020").
 pipeCreateCalendar ::
   Reflex t =>
   Incremental t (G.PatchGraph G.E G.V) ->
