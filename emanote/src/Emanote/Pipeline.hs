@@ -10,14 +10,14 @@ import Data.Conflict (Conflict (..))
 import qualified Data.Conflict as Conflict
 import qualified Data.Conflict.Patch as Conflict
 import qualified Data.Map as Map
-import Data.Tagged (Tagged (..))
+import Data.Tagged (Tagged (..), untag)
 import Emanote.FileSystem (PathContent (..))
 import qualified Emanote.FileSystem as FS
 import qualified Emanote.Graph as G
 import qualified Emanote.Markdown as M
 import qualified Emanote.Markdown.WikiLink.Parser as M
 import Emanote.Zk (Zk (Zk))
-import Reflex
+import Reflex hiding (mapMaybe)
 import Reflex.Host.Headless (MonadHeadlessApp)
 import qualified Reflex.TIncremental as TInc
 import Relude
@@ -148,9 +148,14 @@ pipeGraph = do
     f ::
       PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)] ->
       G.PatchGraph G.E G.V
-    f p =
-      G.PatchGraph . unPatchMap $
-        fmap (first one) <$> p
+    f p = 
+      let pairs = Map.toList $ unPatchMap p
+      in G.PatchGraph $ pairs <&> \(k, mes) ->
+          case mes of 
+            Nothing -> 
+              G.ModifyGraph_RemoveVertex k
+            Just es ->
+              G.ModifyGraph_ReplaceVertexWithSuccessors k (first one <$> es)
 
 -- | WIP: Tag daily notes with month zettels ("2020-02").
 --
@@ -166,20 +171,21 @@ pipeCreateCalendar =
     f
   where
     f :: G.PatchGraph G.E G.V -> G.PatchGraph G.E G.V
-    f =
+    f diff =
       let liftNote :: M.Parsec Void Text Text -> G.PatchGraph G.E G.V -> G.PatchGraph G.E G.V
           liftNote wIdParser diff =
             G.PatchGraph $
-              flip Map.mapWithKey (G.unPatchGraph diff) $ \(Tagged wId) ->
-                fmap $ \es ->
-                  case parse wIdParser wId of
-                    Nothing ->
-                      es
-                    Just parent ->
-                      let edge = (M.WikiLinkLabel_Tag, mempty)
-                       in ([edge], Tagged parent) : es
+              flip mapMaybe (G.unPatchGraph diff) $ \case 
+                  G.ModifyGraph_ReplaceVertexWithSuccessors wId _es -> do
+                    (Tagged -> parent) <- parse wIdParser (untag wId)
+                    pure $ G.ModifyGraph_AddEdge (one (M.WikiLinkLabel_Tag, mempty)) wId parent
+                  act -> Nothing
        in -- FIXME: Year entries won't be created if months zettels don't exist on disk
-          liftNote yearFromMonth . liftNote monthFromDate
+          mconcat 
+            [ diff ,
+             liftNote monthFromDate diff,
+             liftNote yearFromMonth diff 
+             ]
     yearFromMonth :: M.Parsec Void Text Text
     yearFromMonth = do
       year <- num 4 <* dash

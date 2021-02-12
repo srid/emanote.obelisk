@@ -1,16 +1,38 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module Algebra.Graph.Labelled.AdjacencyMap.Patch where
+module Algebra.Graph.Labelled.AdjacencyMap.Patch
+  ( PatchGraph (..),
+    ModifyGraph(..),
+    asPatchGraph,
+    patchedGraphVertexSet,
+  )
+where
 
 import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
-import qualified Data.Map.Strict as Map
 import Data.Patch.Class (Patch (..))
 import qualified Data.Set as Set
 import Relude
 
+-- | An action that modifies the graph.
+data ModifyGraph e v
+  -- | Replace a vertex along with its sucessors
+  -- outgoing edges.
+  = ModifyGraph_ReplaceVertexWithSuccessors v [(e, v)]
+  -- | Add a single edge
+  | ModifyGraph_AddEdge e v v
+  | ModifyGraph_RemoveVertex v
+  deriving (Eq)
+
 -- | NOTE: Patching a graph may leave orphan vertices behind. Use
 -- @patchedGraphVertexSet@ to get the effective list of vertices.
-newtype PatchGraph e v = PatchGraph {unPatchGraph :: Map v (Maybe [(e, v)])}
+newtype PatchGraph e v = PatchGraph {unPatchGraph :: [ModifyGraph e v]}
+
+-- | Concatenation order determines the order the actions will be applied.
+instance Semigroup (PatchGraph e v) where 
+  PatchGraph as1 <> PatchGraph as2 = PatchGraph (as1 <> as2)
+
+instance Monoid (PatchGraph e v) where 
+  mempty = PatchGraph mempty
 
 instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
   type PatchTarget (PatchGraph e v) = AM.AdjacencyMap e v
@@ -19,22 +41,21 @@ instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
     where
       patch ::
         (Ord v, Eq e, Monoid e) =>
-        Map v (Maybe [(e, v)]) ->
+        [ModifyGraph e v] ->
         AM.AdjacencyMap e v ->
         Maybe (AM.AdjacencyMap e v)
       patch diff g =
         let (changed, g') = flip runState g $ do
-              patchVertex `mapM` Map.toList diff
+              patch' `mapM` diff
          in do
               guard $ or changed
               pure g'
-      patchVertex ::
+      patch' ::
         (Ord v, Eq e, Monoid e, MonadState (AM.AdjacencyMap e v) m) =>
-        (v, Maybe [(e, v)]) ->
+        ModifyGraph e v ->
         m Bool
-      patchVertex (v, mes) =
-        case mes of
-          Nothing -> do
+      patch' = \case
+          ModifyGraph_RemoveVertex v -> do
             g <- get
             gets (AM.hasVertex v) >>= \case
               True -> do
@@ -44,7 +65,10 @@ instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
                   else pure False
               False ->
                 pure False
-          Just es -> do
+          ModifyGraph_AddEdge e v v2 -> do
+            modify $ AM.overlay (AM.edge e v v2)
+            pure True
+          ModifyGraph_ReplaceVertexWithSuccessors v es -> do
             g <- get
             let esOld = toList $ postSetWithLabel v g
             if es == esOld
@@ -80,8 +104,12 @@ instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
 -- | Create a patch graph that that will "copy" the given graph when applied as
 -- a patch to an empty graph.
 asPatchGraph :: AM.AdjacencyMap e v -> PatchGraph e v
-asPatchGraph am =
-  PatchGraph $ Just . fmap swap . Map.toList <$> AM.adjacencyMap am
+asPatchGraph am = 
+  let addVertices = 
+          AM.vertexList am <&> flip ModifyGraph_ReplaceVertexWithSuccessors mempty
+      addEdges = 
+          AM.edgeList am <&> (\(e, v1, v2) -> ModifyGraph_AddEdge e v1 v2)
+  in PatchGraph $ addVertices <> addEdges 
 
 -- | Return the vertices in the graph with the given pruning function.
 --
