@@ -109,7 +109,7 @@ homeWidget resp = do
   divClass "w-full md:w-1/2 overflow-hidden md:my-2 md:px-2" $ do
     elClass "h1" "text-3xl text-green-700 font-bold pb-2 mt-2" $ text "Emanote"
     elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
-      text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display the list of notes."
+      text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display root folgezettels and orphans (if any)."
     withBackendResponse resp (constDyn Nothing) $ \result -> do
       let notesDyn = snd <$> result
           stateDyn = fst <$> result

@@ -92,10 +92,12 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
           z -> case length (G.connectionsOf W.isParent z graph) of
             0 -> Affinity_Root
             n -> Affinity_HasParents (intToNatural n)
-    pure $
-      (estate,) $
-        sortOn Down $
-          Set.toList (getVertices graph) <&> getAffinity &&& id
+        topLevelNotes =
+          flip mapMaybe (Set.toList $ getVertices graph) $ \z ->
+            case getAffinity z of
+              Affinity_HasParents _ -> Nothing
+              aff -> Just (aff, z)
+    pure (estate, sortOn Down topLevelNotes)
   EmanoteApi_Note wikiLinkID -> do
     liftIO $ putStrLn $ "Note! " <> show wikiLinkID
     zs <- Zk.getZettels zk

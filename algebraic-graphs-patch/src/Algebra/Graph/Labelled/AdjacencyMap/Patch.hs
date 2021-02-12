@@ -17,12 +17,12 @@ import Relude
 
 -- | An action that modifies the graph.
 data ModifyGraph e v
-  = -- | Replace a vertex along with its sucessors
-    -- outgoing edges.
+  = -- | Replace a vertex along with its sucessor edges
     ModifyGraph_ReplaceVertexWithSuccessors v [(e, v)]
   | -- | Add a single edge
     ModifyGraph_AddEdge e v v
-  | ModifyGraph_RemoveVertex v
+    -- | Remove a vertex, unless it has direct predecessors
+  | ModifyGraph_RemoveVertexWithoutPredecessors v
   deriving (Eq)
 
 -- | NOTE: Patching a graph may leave orphan vertices behind. Use
@@ -50,7 +50,7 @@ modifiedOrAddedVertices (PatchGraph actions) =
           v : vs
         ModifyGraph_AddEdge _ v1 v2 ->
           [v1, v2]
-        ModifyGraph_RemoveVertex _ ->
+        ModifyGraph_RemoveVertexWithoutPredecessors _ ->
           []
 
 removedVertices :: Ord v => PatchGraph e v -> Set v
@@ -62,36 +62,29 @@ removedVertices (PatchGraph actions) =
           []
         ModifyGraph_AddEdge {} ->
           []
-        ModifyGraph_RemoveVertex v ->
+        ModifyGraph_RemoveVertexWithoutPredecessors v ->
           [v]
 
 instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
   type PatchTarget (PatchGraph e v) = AM.AdjacencyMap e v
-  apply (PatchGraph p) graph =
-    patch p graph
+  apply (PatchGraph modifications) graph0 =
+    let (changed, g') = flip runState graph0 $ do
+          modifyGraph `mapM` modifications
+      in do
+          guard $ or changed
+          pure g'
     where
-      patch ::
-        (Ord v, Eq e, Monoid e) =>
-        [ModifyGraph e v] ->
-        AM.AdjacencyMap e v ->
-        Maybe (AM.AdjacencyMap e v)
-      patch diff g =
-        let (changed, g') = flip runState g $ do
-              patch' `mapM` diff
-         in do
-              guard $ or changed
-              pure g'
-      patch' ::
+      modifyGraph ::
         (Ord v, Eq e, Monoid e, MonadState (AM.AdjacencyMap e v) m) =>
         ModifyGraph e v ->
         m Bool
-      patch' = \case
-        ModifyGraph_RemoveVertex v -> do
+      modifyGraph = \case
+        ModifyGraph_RemoveVertexWithoutPredecessors v -> do
           g <- get
           gets (AM.hasVertex v) >>= \case
             True -> do
               if Set.null $ AM.preSet v g
-                then -- Delete only if no other vertex is connecting to us.
+                then -- Delete only if there aren't any direct predecessors
                   modify (AM.removeVertex v) >> pure True
                 else pure False
             False ->
@@ -123,7 +116,7 @@ instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
                 AM.overlay newVertexOverlay
               -- NOTE: if a v2 got removed, and it is not linked in other
               -- vertices, we should remove it *IF* there is not actual note
-              -- on disk. But this "actula note" check is better decoupled,
+              -- on disk. But this "actual note" check is better decoupled,
               -- and checked elsewhere. See patchedGraphVertexSet below.
               pure True
       postSetWithLabel :: (Ord a, Monoid e) => a -> AM.AdjacencyMap e a -> [(e, a)]
