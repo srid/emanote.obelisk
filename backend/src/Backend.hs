@@ -65,61 +65,67 @@ backend =
                     Right req -> do
                       r <- mkTaggedResponse req $ handleEmanoteApi readOnly zk
                       case r of
-                        Left err -> error $ toText err -- TODO
+                        Left err -> error $ toText err
                         Right rsp ->
                           WS.sendDataMessage conn $
                             WS.Text (Aeson.encode rsp) Nothing
-                    Left err -> error $ toText err --TODO
+                    Left err -> error $ toText err
                   pure (),
       _backend_routeEncoder = fullRouteEncoder
     }
 
-handleEmanoteApi :: MonadIO m => Bool -> Zk -> EmanoteApi a -> m a
+handleEmanoteApi :: forall m a. MonadIO m => Bool -> Zk -> EmanoteApi a -> m a
 handleEmanoteApi readOnly zk@Zk {..} = \case
   EmanoteApi_GetRev -> do
     Zk.getRev zk
   EmanoteApi_GetNotes -> do
-    liftIO $ putStrLn "GetNotes!"
-    zs <- Zk.getZettels zk
-    graph <- Zk.getGraph zk
-    estate <- if readOnly then pure EmanoteState_ReadOnly else EmanoteState_AtRev <$> Zk.getRev zk
-    let getVertices = GP.patchedGraphVertexSet (isJust . flip Map.lookup zs) . G.unGraph
-        orphans =
-          let indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
-           in getVertices graph `Set.difference` indexed
-        getAffinity = \case
-          z | Set.member z orphans -> Affinity_Orphaned
-          z -> case length (G.connectionsOf W.isParent z graph) of
-            0 -> Affinity_Root
-            n -> Affinity_HasParents (intToNatural n)
-        topLevelNotes =
-          flip mapMaybe (Set.toList $ getVertices graph) $ \z ->
-            case getAffinity z of
-              Affinity_HasParents _ -> Nothing
-              aff -> Just (aff, z)
-    pure (estate, sortOn Down topLevelNotes)
+    liftIO $ putStrLn "API: GetNotes"
+    estate <- getEmanoteState
+    toplevel <- getOrphansAndRoots
+    pure (estate, sortOn Down toplevel)
   EmanoteApi_Note wikiLinkID -> do
-    liftIO $ putStrLn $ "Note! " <> show wikiLinkID
+    liftIO $ putStrLn $ "API: Note " <> show wikiLinkID
+    estate <- getEmanoteState
     zs <- Zk.getZettels zk
     graph <- Zk.getGraph zk
-    estate <- if readOnly then pure EmanoteState_ReadOnly else EmanoteState_AtRev <$> Zk.getRev zk
     let mz = Map.lookup wikiLinkID zs
-    let mkLinkCtxList f = do
+        mkLinkCtxList f = do
           let ls = uncurry mkLinkContext <$> G.connectionsOf f wikiLinkID graph
           -- Sort in reverse order so that daily notes (calendar) are pushed down.
           sortOn Down ls
-        wikiLinkUrl = renderWikiLinkUrl wikiLinkID
-    let note =
+        note =
           Note
             wikiLinkID
-            wikiLinkUrl
             mz
-            -- TODO: Refactor using enum/dmap/gadt
-            (mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l) && not (W.isBranch l))) -- Backlinks (sans uplinks / downlinks)
-            (mkLinkCtxList (\l -> W.isBranch l && W.isReverse l)) -- Downlinks (minus links already in note)
-            (mkLinkCtxList W.isParent) -- Uplinks
+            (mkLinkCtxList W.isBacklink)
+            (mkLinkCtxList W.isTaggedBy)
+            (mkLinkCtxList W.isUplink)
     pure (estate, note)
   where
     mkLinkContext :: (WikiLinkLabel, [Block]) -> WikiLinkID -> LinkContext
     mkLinkContext (_linkcontext_label, Pandoc mempty -> _linkcontext_ctx) _linkcontext_id =
       LinkContext {..}
+    getEmanoteState :: m EmanoteState
+    getEmanoteState = do
+      if readOnly
+        then pure EmanoteState_ReadOnly
+        else EmanoteState_AtRev <$> Zk.getRev zk
+    getOrphansAndRoots :: m [(Affinity, WikiLinkID)]
+    getOrphansAndRoots = do
+      zs <- Zk.getZettels zk
+      graph <- Zk.getGraph zk
+      let getVertices = GP.patchedGraphVertexSet (flip Map.member zs) . G.unGraph
+          orphans =
+            let indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
+             in getVertices graph `Set.difference` indexed
+          getAffinity = \case
+            z | Set.member z orphans -> Affinity_Orphaned
+            z -> case length (G.connectionsOf W.isParent z graph) of
+              0 -> Affinity_Root
+              n -> Affinity_HasParents (intToNatural n)
+          topLevelNotes =
+            flip mapMaybe (Set.toList $ getVertices graph) $ \z ->
+              case getAffinity z of
+                Affinity_HasParents _ -> Nothing
+                aff -> Just (aff, z)
+      pure topLevelNotes

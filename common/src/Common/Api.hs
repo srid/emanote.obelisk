@@ -23,7 +23,6 @@ import Text.Pandoc.Definition
 
 data Note = Note
   { _note_wikiLinkID :: EM.WikiLinkID,
-    _note_wikiLinkUrl :: Text,
     -- | A note may correspond to a non-existant zettel (due to simply being
     -- linked), and so can be `Nothing`.
     _note_zettel :: Maybe Zettel,

@@ -21,8 +21,8 @@ data ModifyGraph e v
     ModifyGraph_ReplaceVertexWithSuccessors v [(e, v)]
   | -- | Add a single edge
     ModifyGraph_AddEdge e v v
-    -- | Remove a vertex, unless it has direct predecessors
-  | ModifyGraph_RemoveVertexWithoutPredecessors v
+  | -- | Remove a vertex, unless it has direct predecessors
+    ModifyGraph_RemoveVertexWithoutPredecessors v
   deriving (Eq)
 
 -- | NOTE: Patching a graph may leave orphan vertices behind. Use
@@ -70,7 +70,7 @@ instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
   apply (PatchGraph modifications) graph0 =
     let (changed, g') = flip runState graph0 $ do
           modifyGraph `mapM` modifications
-      in do
+     in do
           guard $ or changed
           pure g'
     where

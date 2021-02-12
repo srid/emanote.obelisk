@@ -92,3 +92,22 @@ isBranch = \case
   UserDefinedDirection WikiLinkLabel_Branch -> True
   ReverseDirection WikiLinkLabel_Tag -> True
   _ -> False
+
+-- The three abstract kinds of links.
+
+-- | Is this link a (non-folgezettel) backlink?
+isBacklink :: Directed WikiLinkLabel -> Bool
+isBacklink l =
+  isReverse l
+    && not (isParent l)
+    && not (isBranch l)
+
+-- | Is this link from a note that tags self?
+isTaggedBy :: Directed WikiLinkLabel -> Bool
+isTaggedBy l =
+  isReverse l
+    && isBranch l
+
+isUplink :: Directed WikiLinkLabel -> Bool
+isUplink =
+  isParent
