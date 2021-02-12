@@ -3,24 +3,28 @@
 
 module Emanote.Pipeline (run, runNoMonitor) where
 
+import qualified Algebra.Graph.Labelled.AdjacencyMap as AM
+import qualified Algebra.Graph.Labelled.AdjacencyMap.Patch as G
 import qualified Commonmark.Syntax as CM
 import Data.Conflict (Conflict (..))
 import qualified Data.Conflict as Conflict
 import qualified Data.Conflict.Patch as Conflict
 import qualified Data.Map as Map
-import Data.Tagged (Tagged (..))
+import qualified Data.Set as Set
+import Data.Tagged (Tagged (..), untag)
 import Emanote.FileSystem (PathContent (..))
 import qualified Emanote.FileSystem as FS
 import qualified Emanote.Graph as G
-import qualified Emanote.Graph.Patch as G
 import qualified Emanote.Markdown as M
 import qualified Emanote.Markdown.WikiLink.Parser as M
 import Emanote.Zk (Zk (Zk))
-import Reflex
+import Reflex hiding (mapMaybe)
 import Reflex.Host.Headless (MonadHeadlessApp)
 import qualified Reflex.TIncremental as TInc
 import Relude
 import System.FilePath (dropExtension, takeExtension, takeFileName)
+import qualified Text.Megaparsec as M
+import qualified Text.Megaparsec.Char as M
 import Text.Pandoc.Definition (Pandoc)
 import qualified Text.Pandoc.LinkContext as LC
 
@@ -47,13 +51,13 @@ run' monitor inputDir = do
   let pandocOut =
         input
           & pipeFilterFilename (\fn -> takeExtension fn == ".md")
-          -- & pipeInjectDirZettels
           & pipeFlattenFsTree (Tagged . toText . dropExtension . takeFileName)
           & pipeParseMarkdown (M.wikiLinkSpec <> M.markdownSpec)
       graphOut =
         pandocOut
           & pipeExtractLinks
           & pipeGraph
+          & pipeCreateCalendar
   Zk
     <$> TInc.mirrorIncremental pandocOut
     <*> TInc.mirrorIncremental graphOut
@@ -136,18 +140,69 @@ pipeGraph ::
   forall t.
   (Reflex t) =>
   Incremental t (PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)]) ->
-  Incremental t G.PatchGraph
+  Incremental t (G.PatchGraph G.E G.V)
 pipeGraph = do
   unsafeMapIncremental
-    (fromMaybe G.empty . flip apply G.empty . f . PatchMap . fmap Just)
+    (fromMaybe AM.empty . flip apply AM.empty . f . PatchMap . fmap Just)
     f
   where
     f ::
       PatchMap M.WikiLinkID [((M.WikiLinkLabel, M.WikiLinkContext), M.WikiLinkID)] ->
-      G.PatchGraph
+      G.PatchGraph G.E G.V
     f p =
-      G.PatchGraph . unPatchMap $
-        fmap (first one) <$> p
+      let pairs = Map.toList $ unPatchMap p
+       in G.PatchGraph $
+            pairs <&> \(k, mes) ->
+              case mes of
+                Nothing ->
+                  G.ModifyGraph_RemoveVertex k
+                Just es ->
+                  G.ModifyGraph_ReplaceVertexWithSuccessors k (first one <$> es)
+
+-- | Tag daily notes with month zettels ("2020-02"), which are tagged further
+-- with year zettels ("2020").
+pipeCreateCalendar ::
+  Reflex t =>
+  Incremental t (G.PatchGraph G.E G.V) ->
+  Incremental t (G.PatchGraph G.E G.V)
+pipeCreateCalendar =
+  unsafeMapIncremental
+    (fromMaybe AM.empty . flip apply AM.empty . f . G.asPatchGraph)
+    f
+  where
+    f :: G.PatchGraph G.E G.V -> G.PatchGraph G.E G.V
+    f diff =
+      let liftNote :: M.Parsec Void Text Text -> G.PatchGraph G.E G.V -> G.PatchGraph G.E G.V
+          liftNote wIdParser d =
+            G.PatchGraph $
+              flip mapMaybe (Set.toList $ G.modifiedOrAddedVertices d) $ \wId -> do
+                (Tagged -> parent) <- parse wIdParser (untag wId)
+                pure $ G.ModifyGraph_AddEdge (one (M.WikiLinkLabel_Tag, mempty)) wId parent
+          monthDiff = liftNote monthFromDate diff
+          -- Include monthDiff here, so as to 'lift' those ghost month zettels further.
+          yearDiff = liftNote yearFromMonth (diff <> monthDiff)
+       in mconcat
+            [ diff,
+              monthDiff,
+              yearDiff
+            ]
+    yearFromMonth :: M.Parsec Void Text Text
+    yearFromMonth = do
+      year <- num 4 <* dash
+      _month <- num 2
+      pure year
+    monthFromDate :: M.Parsec Void Text Text
+    monthFromDate = do
+      year <- num 4 <* dash
+      month <- num 2 <* dash
+      _day <- num 2
+      pure $ year <> "-" <> month
+    dash = M.char '-'
+    num n =
+      toText <$> M.count n M.digitChar
+    parse :: forall e s r. (M.Stream s, Ord e) => M.Parsec e s r -> s -> Maybe r
+    parse p =
+      M.parseMaybe (p <* M.eof)
 
 -- | Like `unsafeMapIncremental` but the patch function also takes the old
 -- target.

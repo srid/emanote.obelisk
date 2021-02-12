@@ -3,6 +3,7 @@
 
 module Backend where
 
+import qualified Algebra.Graph.Labelled.AdjacencyMap.Patch as GP
 import Common.Api
 import Common.Route
 import qualified Data.Aeson as Aeson
@@ -13,7 +14,6 @@ import Data.Some (Some (..))
 import qualified Data.Text as T
 import qualified Emanote
 import qualified Emanote.Graph as G
-import qualified Emanote.Graph.Patch as GP
 import Emanote.Markdown.WikiLink
 import qualified Emanote.Markdown.WikiLink as W
 import qualified Emanote.Pipeline as Pipeline

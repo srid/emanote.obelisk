@@ -18,6 +18,7 @@ library
 
   build-depends:
     , algebraic-graphs
+    , algebraic-graphs-patch
     , async
     , base
     , commonmark

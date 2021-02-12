@@ -2,10 +2,10 @@
 
 module Emanote.Zk where
 
+import Algebra.Graph.Labelled.AdjacencyMap.Patch (PatchGraph)
 import Control.Concurrent (forkIO)
 import qualified Control.Concurrent.STM as STM
-import Emanote.Graph (Graph)
-import Emanote.Graph.Patch (PatchGraph)
+import Emanote.Graph (E, Graph (..), V)
 import qualified Emanote.Markdown.WikiLink as M
 import Emanote.Zk.Type
 import Reflex (PatchMap)
@@ -15,7 +15,7 @@ import Relude
 
 data Zk = Zk
   { _zk_zettels :: TIncremental (PatchMap M.WikiLinkID Zettel),
-    _zk_graph :: TIncremental PatchGraph,
+    _zk_graph :: TIncremental (PatchGraph E V),
     _zk_processStateRev :: TVar Rev
   }
 
@@ -33,7 +33,7 @@ getZettels =
 
 getGraph :: MonadIO m => Zk -> m Graph
 getGraph =
-  TInc.readValue . _zk_graph
+  fmap Graph . TInc.readValue . _zk_graph
 
 getRev :: MonadIO m => Zk -> m Rev
 getRev =
