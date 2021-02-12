@@ -116,7 +116,7 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
             mz
             -- TODO: Refactor using enum/dmap/gadt
             (mkLinkCtxList (\l -> W.isReverse l && not (W.isParent l) && not (W.isBranch l))) -- Backlinks (sans uplinks / downlinks)
-            (mkLinkCtxList W.isBranch) -- Downlinks
+            (mkLinkCtxList (\l -> W.isBranch l && W.isReverse l)) -- Downlinks (minus links already in note)
             (mkLinkCtxList W.isParent) -- Uplinks
     pure (estate, note)
   where

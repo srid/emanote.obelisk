@@ -164,7 +164,7 @@ noteWidget waiting resp = do
                       Left parseErr -> dynText $ show <$> parseErr
                       Right docDyn -> do
                         dyn_ $ renderPandoc <$> docDyn
-      renderLinkContexts "Downlinks" downlinks $ \ctx -> do
+      renderLinkContexts "Tagged by" downlinks $ \ctx -> do
         divClass "opacity-50 hover:opacity-100 text-sm" $ do
           renderLinkContextBody ctx
     divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6" $ do
