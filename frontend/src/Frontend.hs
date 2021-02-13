@@ -151,7 +151,15 @@ noteWidget waiting resp = do
       mzettel <- maybeDyn $ _note_zettel <$> noteDyn
       dyn_ $
         ffor mzettel $ \case
-          Nothing -> text "No such note"
+          Nothing -> do
+            -- We allow non-existant notes, if they have backlinks, etc.
+            hasRefs <- holdUniqDyn $
+              ffor noteDyn $ \Note {..} ->
+                not $ null _note_uplinks && null _note_backlinks && null _note_downlinks
+            dyn_ $
+              ffor hasRefs $ \case
+                True -> blank
+                False -> text "No such note"
           Just zDyn -> do
             ez <- eitherDyn zDyn
             dyn_ $
