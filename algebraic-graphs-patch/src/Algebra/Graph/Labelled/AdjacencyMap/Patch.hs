@@ -17,12 +17,15 @@ import Relude
 
 -- | An action that modifies the graph.
 data ModifyGraph e v
-  = -- | Replace a vertex along with its sucessor edges
+  = -- | Replace (or add) a vertex along with its sucessor edges
     ModifyGraph_ReplaceVertexWithSuccessors v [(e, v)]
   | -- | Add a single edge
     ModifyGraph_AddEdge e v v
-  | -- | Remove a vertex, unless it has direct predecessors
-    ModifyGraph_RemoveVertexWithoutPredecessors v
+  | -- | Remove a vertex and its successors.
+    --
+    -- The vertex itself will be retained only if it is referenced elsewhere (ie. it is
+    -- a successor of some other vertex).
+    ModifyGraph_RemoveVertexWithSuccessors v
   deriving (Eq)
 
 -- | NOTE: Patching a graph may leave orphan vertices behind. Use
@@ -50,7 +53,7 @@ modifiedOrAddedVertices (PatchGraph actions) =
           v : vs
         ModifyGraph_AddEdge _ v1 v2 ->
           [v1, v2]
-        ModifyGraph_RemoveVertexWithoutPredecessors _ ->
+        ModifyGraph_RemoveVertexWithSuccessors _ ->
           []
 
 removedVertices :: Ord v => PatchGraph e v -> Set v
@@ -62,7 +65,7 @@ removedVertices (PatchGraph actions) =
           []
         ModifyGraph_AddEdge {} ->
           []
-        ModifyGraph_RemoveVertexWithoutPredecessors v ->
+        ModifyGraph_RemoveVertexWithSuccessors v ->
           [v]
 
 instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
@@ -79,24 +82,29 @@ instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
         ModifyGraph e v ->
         m Bool
       modifyGraph = \case
-        ModifyGraph_RemoveVertexWithoutPredecessors v -> do
-          g <- get
+        ModifyGraph_RemoveVertexWithSuccessors v -> do
           gets (AM.hasVertex v) >>= \case
             True -> do
-              if Set.null $ AM.preSet v g
-                then -- Delete only if there aren't any direct predecessors
-                  modify (AM.removeVertex v) >> pure True
-                else pure False
+              -- First remove all successors
+              succs <- gets (toList . AM.postSet v)
+              forM_ succs $ \v2 ->
+                modify $ AM.removeEdge v v2
+              -- Then remove the vertex itself, but only if it is not being
+              -- referenced from elsewhere.
+              gets (Set.null . AM.preSet v) >>= \case
+                True -> modify (AM.removeVertex v) >> pure True
+                False -> pure $ not (null succs)
             False ->
               pure False
         ModifyGraph_AddEdge e v v2 -> do
           modify $ AM.overlay (AM.edge e v v2)
           pure True
         ModifyGraph_ReplaceVertexWithSuccessors v es -> do
-          g <- get
-          let esOld = toList $ postSetWithLabel v g
-          if es == esOld
-            then
+          esOldWithLabels <- gets (toList . postSetWithLabel v)
+          let esOld = fmap snd esOldWithLabels
+          if es == esOldWithLabels
+            then -- Vertex itself changed, with its connections intact
+
               if null es
                 then
                   gets (AM.hasVertex v) >>= \case
@@ -104,9 +112,10 @@ instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
                     False -> modify (AM.overlay (AM.vertex v)) >> pure True
                     True -> pure False
                 else pure False
-            else do
+            else -- Vertex changed, along with its connections
+            do
               -- Remove all edges, then add new ones back in.
-              forM_ esOld $ \(_, v2) ->
+              forM_ esOld $ \v2 -> do
                 modify $ AM.removeEdge v v2
               let newVertexOverlay =
                     AM.edges
@@ -115,7 +124,7 @@ instance (Ord v, Eq e, Monoid e) => Patch (PatchGraph e v) where
               modify $
                 AM.overlay newVertexOverlay
               -- NOTE: if a v2 got removed, and it is not linked in other
-              -- vertices, we should remove it *IF* there is not actual note
+              -- vertices, we should remove it *IF* there is no actual note
               -- on disk. But this "actual note" check is better decoupled,
               -- and checked elsewhere. See patchedGraphVertexSet below.
               pure True
