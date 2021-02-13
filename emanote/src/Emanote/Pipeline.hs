@@ -159,7 +159,7 @@ pipeGraph = do
             pairs <&> \(k, mes) ->
               case mes of
                 Nothing ->
-                  G.ModifyGraph_RemoveVertexWithoutPredecessors k
+                  G.ModifyGraph_RemoveVertexWithSuccessors k
                 Just es ->
                   G.ModifyGraph_ReplaceVertexWithSuccessors k (first one <$> es)
 
