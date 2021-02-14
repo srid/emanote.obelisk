@@ -13,7 +13,6 @@ import Common.Route
 import Control.Monad.Fix (MonadFix)
 import qualified Data.Map.Strict as Map
 import Data.Tagged
-import qualified Data.Text as T
 import Emanote.Markdown.WikiLink
 import qualified Emanote.Zk.Type as Zk
 import qualified Frontend.App as App
@@ -178,20 +177,33 @@ noteWidget waiting resp = do
                       Right docDyn -> do
                         divClass "notePandoc" $
                           dyn_ $ renderPandoc <$> docDyn
-      renderLinkContexts "Tagged by" downlinks $ \ctx -> do
-        divClass "opacity-50 hover:opacity-100 text-sm" $ do
-          renderLinkContextBody ctx
+      mDownlinks <- maybeDyn $ nonEmpty <$> downlinks
+      dyn_ $
+        ffor mDownlinks $ \case
+          Nothing -> blank
+          Just backlinksNE ->
+            elSidePanelBox "Downlinks" $
+              renderLinkContexts (toList <$> backlinksNE)
     elSidePanel waiting $ do
-      divClass "" $ do
-        routeLink (FrontendRoute_Main :/ ()) $
-          elClass "button" "font-serif border-1 p-2 text-white rounded place-self-center border-green-700 bg-green-400 hover:opacity-70" $
-            text "Home"
-      renderLinkContexts "Uplinks" uplinks $ \ctx -> do
-        divClass "opacity-50 hover:opacity-100 text-sm" $ do
-          renderLinkContextBody ctx
-      renderLinkContexts "Backlinks" backlinks $ \ctx -> do
-        divClass "opacity-50 hover:opacity-100 text-sm" $ do
-          renderLinkContextBody ctx
+      mUplinks <- maybeDyn $ nonEmpty <$> uplinks
+      dyn_ $
+        ffor mUplinks $ \case
+          Nothing ->
+            elSidePanelBox "Nav" $ do
+              routeLinkDynAttr
+                (constDyn $ wikiLinkAttrs <> "title" =: "link:home")
+                (constDyn $ FrontendRoute_Main :/ ())
+                $ text "Home"
+          Just uplinksNE ->
+            elSidePanelBox "Uplinks" $
+              renderLinkContexts (toList <$> uplinksNE)
+      mBacklinks <- maybeDyn $ nonEmpty <$> backlinks
+      dyn_ $
+        ffor mBacklinks $ \case
+          Nothing -> blank
+          Just backlinksNE ->
+            elSidePanelBox "Backlinks" $
+              renderLinkContexts (toList <$> backlinksNE)
     elFooter $ do
       let url = "https://github.com/srid/emanote"
       text "Powered by "
@@ -206,24 +218,14 @@ noteWidget waiting resp = do
             text " changes since boot)"
     pure $ Just <$> stateDyn
   where
-    renderLinkContexts name ls ctxW = do
-      let mkDivClass hide =
-            T.intercalate " " $
-              catMaybes
-                [ bool Nothing (Just "hidden") hide,
-                  Just "linksBox",
-                  Just "animated",
-                  Just name
-                ]
-      elDynClass "div" (mkDivClass . null <$> ls) $ do
-        elClass "h2" "header text-xl w-full pl-2 pt-2 pb-2 font-serif bg-green-100 " $ text name
-        divClass "p-2" $ do
-          void $
-            simpleList ls $ \lDyn -> do
-              divClass "pt-1" $ do
-                divClass "linkheader" $
-                  renderLinkContextLink ("class" =: "text-green-700") lDyn
-                ctxW $ _linkcontext_ctxList <$> lDyn
+    renderLinkContexts ls =
+      void $
+        simpleList ls $ \lDyn -> do
+          divClass "pt-1" $ do
+            divClass "linkheader" $
+              renderLinkContextLink wikiLinkAttrs lDyn
+            divClass "opacity-50 hover:opacity-100 text-sm" $ do
+              renderLinkContextBody $ _linkcontext_ctxList <$> lDyn
     renderLinkContextLink attrs lDyn = do
       renderWikiLink
         attrs
@@ -235,25 +237,9 @@ noteWidget waiting resp = do
           divClass "mb-1 pb-1 border-b-2 border-black-200" $
             dyn_ $ renderPandoc . Pandoc mempty <$> ctx
 
-divClassMayLoading :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> Text -> m a -> m a
-divClassMayLoading waiting cls =
-  elDynClass "div" (ffor waiting $ bool cls (cls <> " animate-pulse"))
-
-elMainPanel :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
-elMainPanel waiting =
-  divClassMayLoading waiting "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6"
-
-elMainHeading :: DomBuilder t m => m a -> m a
-elMainHeading =
-  elClass "h1" "text-3xl text-green-700 font-bold mt-2 mb-4"
-
-elSidePanel :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
-elSidePanel waiting =
-  divClassMayLoading waiting "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6"
-
-elFooter :: (DomBuilder t m) => m a -> m a
-elFooter =
-  divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2"
+wikiLinkAttrs :: Map AttributeName Text
+wikiLinkAttrs =
+  "class" =: "text-green-700"
 
 renderWikiLink ::
   ( PostBuild t m,
@@ -355,3 +341,37 @@ withBackendResponse resp v0 f = do
               pure v0
             Right result ->
               f result
+
+-- Layout
+
+-- | Main column
+elMainPanel :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
+elMainPanel waiting =
+  divClassMayLoading waiting "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6"
+
+-- | Heading in main column
+elMainHeading :: DomBuilder t m => m a -> m a
+elMainHeading =
+  elClass "h1" "text-3xl text-green-700 font-bold mt-2 mb-4"
+
+-- | Side column
+elSidePanel :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
+elSidePanel waiting =
+  divClassMayLoading waiting "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6"
+
+-- | Bottom footer
+elFooter :: (DomBuilder t m) => m a -> m a
+elFooter =
+  divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2"
+
+-- | A box in side column
+elSidePanelBox :: DomBuilder t m => Text -> m a -> m a
+elSidePanelBox name w =
+  divClass ("linksBox animated " <> name) $ do
+    elClass "h2" "header text-xl w-full pl-2 pt-2 pb-2 font-serif bg-green-100 " $ text name
+    divClass "p-2" $ do
+      w
+
+divClassMayLoading :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> Text -> m a -> m a
+divClassMayLoading waiting cls =
+  elDynClass "div" (ffor waiting $ bool cls (cls <> " animate-pulse"))
