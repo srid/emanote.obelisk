@@ -47,9 +47,9 @@ frontend =
         divClass "min-h-screen md:container mx-auto px-4" $ do
           fmap join $
             prerender (pure $ constDyn Nothing) $ do
-              keyE <- W.captureKey ForwardSlash
+              keyE <- W.captureKey Search.keyMap
               App.runApp $ do
-                rec xDyn <- app update (void keyE)
+                rec xDyn <- app update keyE
                     let rev = fmapMaybe (nonReadOnlyRev =<<) $ updated $ fst <$> xDyn
                     update <- App.pollRevUpdates EmanoteApi_GetRev rightToMaybe rev
                 pure $ snd <$> xDyn
@@ -75,7 +75,7 @@ app ::
     App.EmanoteRequester t m
   ) =>
   Event t Zk.Rev ->
-  Event t () ->
+  Event t Search.SearchAction ->
   RoutedT t (R FrontendRoute) m (Dynamic t (Maybe EmanoteState, Maybe Text))
 app updateAvailable searchTrigger =
   divClass "flex flex-wrap justify-center flex-row-reverse md:-mx-2 overflow-hidden" $ do

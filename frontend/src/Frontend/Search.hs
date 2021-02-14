@@ -9,17 +9,33 @@ import Common.Api
 import Common.Route
 import Control.Lens.Operators
 import Control.Monad.Fix (MonadFix)
+import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import Data.Time.Clock
 import Emanote.Markdown.WikiLink
 import Frontend.App
 import qualified Frontend.Widget as W
-import GHCJS.DOM.HTMLElement (focus)
+import GHCJS.DOM.HTMLElement (blur, focus)
 import GHCJS.DOM.Types (IsHTMLElement)
 import Obelisk.Route
 import Obelisk.Route.Frontend
 import Reflex.Dom.Core
 import Relude
+
+data SearchAction
+  = SearchAction_Focus
+  | SearchAction_Leave
+  deriving (Eq, Show)
+
+type KeyMap = Map Key SearchAction
+
+keyMap :: KeyMap
+keyMap =
+  Map.fromList
+    [ (ForwardSlash, SearchAction_Focus),
+      -- Note that Vimium interferes with the Escape key. Double-pressing it works.
+      (Escape, SearchAction_Leave)
+    ]
 
 -- TODO: Escape key to reset search box and remove focus
 searchWidget ::
@@ -37,21 +53,31 @@ searchWidget ::
     EmanoteRequester t m,
     IsHTMLElement (RawInputElement (DomBuilderSpace m))
   ) =>
-  Event t () ->
+  Event t SearchAction ->
   RoutedT t (R FrontendRoute) m ()
-searchWidget trigger = do
+searchWidget (traceEvent "actionE" -> actionE) = do
   elFullPanel $ do
     clickedAway <- fmap updated askRoute
+    let leave =
+          leftmost
+            [ () <$ clickedAway,
+              fforMaybe actionE $ \case
+                SearchAction_Leave -> Just ()
+                _ -> Nothing
+            ]
     let inputClass = "pl-2 my-0.5 w-full md:w-large rounded border border-transparent focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
     qElem <-
       inputElement $
         def
           & initialAttributes .~ ("placeholder" =: "Search ..." <> "class" =: inputClass)
-          & inputElementConfig_setValue .~ ("" <$ clickedAway)
+          & inputElementConfig_setValue .~ ("" <$ leave)
     prerender_ blank $
       widgetHold_ blank $
-        ffor trigger $ \() ->
-          focus $ _inputElement_raw qElem
+        ffor actionE $ \case
+          SearchAction_Focus ->
+            focus $ _inputElement_raw qElem
+          SearchAction_Leave ->
+            blur $ _inputElement_raw qElem
     mq :: Dynamic t (Maybe Text) <- debounceDyn 0.2 $ ffor (value qElem) $ \(T.strip -> s) -> guard (not $ T.null s) >> pure s
     mq' <- maybeDyn mq
     dyn_ $

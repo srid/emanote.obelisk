@@ -8,10 +8,11 @@
 module Frontend.Widget where
 
 import Common.Route
+import qualified Data.Map.Strict as Map
 import Data.Tagged
 import Emanote.Markdown.WikiLink
 import "ghcjs-dom" GHCJS.DOM.Document (getBodyUnchecked)
-import GHCJS.DOM.EventM (on) --  preventDefault)
+import GHCJS.DOM.EventM (on)
 import GHCJS.DOM.GlobalEventHandlers (keyUp)
 import Language.Javascript.JSaddle.Types (MonadJSM)
 import Obelisk.Route
@@ -51,9 +52,9 @@ captureKey ::
     DomBuilderSpace m ~ GhcjsDomSpace,
     MonadJSM m
   ) =>
-  Key ->
-  m (Event t Key)
-captureKey key = do
+  Map Key a ->
+  m (Event t a)
+captureKey keyMap = do
   doc <- askDocument
   body <- getBodyUnchecked doc
   kp <- wrapDomEvent body (`on` keyUp) $ do
@@ -63,7 +64,9 @@ captureKey key = do
     -- when keys like <F1> or the arrow keys are pressed. If you want to
     -- preserve default behavior don't use it, or you can apply it
     -- selectively, only to certain keypresses.
-    if keyPressed == key
-      then pure (Just keyPressed)
-      else pure Nothing
+    case Map.lookup keyPressed keyMap of
+      Nothing -> pure Nothing
+      Just v -> do
+        -- preventDefault
+        pure (Just v)
   pure $ fforMaybe kp id
