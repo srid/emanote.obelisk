@@ -11,8 +11,8 @@ import Common.Route
 import Data.Tagged
 import Emanote.Markdown.WikiLink
 import "ghcjs-dom" GHCJS.DOM.Document (getBodyUnchecked)
-import GHCJS.DOM.EventM (on, preventDefault)
-import GHCJS.DOM.GlobalEventHandlers (keyDown)
+import GHCJS.DOM.EventM (on) --  preventDefault)
+import GHCJS.DOM.GlobalEventHandlers (keyUp)
 import Language.Javascript.JSaddle.Types (MonadJSM)
 import Obelisk.Route
 import Obelisk.Route.Frontend
@@ -56,14 +56,14 @@ captureKey ::
 captureKey key = do
   doc <- askDocument
   body <- getBodyUnchecked doc
-  kp <- wrapDomEvent body (`on` keyDown) $ do
+  kp <- wrapDomEvent body (`on` keyUp) $ do
     keyEvent <- getKeyEvent
     let keyPressed = keyCodeLookup (fromEnum keyEvent)
-    -- This 'preventDefault' is here to prevent the browser's default behavior
+    -- Use 'preventDefault' here to prevent the browser's default behavior
     -- when keys like <F1> or the arrow keys are pressed. If you want to
-    -- preserve default behavior this can be removed, or you can apply it
+    -- preserve default behavior don't use it, or you can apply it
     -- selectively, only to certain keypresses.
     if keyPressed == key
-      then preventDefault >> pure (Just keyPressed)
+      then pure (Just keyPressed)
       else pure Nothing
   pure $ fforMaybe kp id
