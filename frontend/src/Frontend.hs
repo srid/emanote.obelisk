@@ -2,7 +2,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PackageImports #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RecursiveDo #-}
 
@@ -19,11 +18,7 @@ import qualified Frontend.App as App
 import qualified Frontend.Search as Search
 import qualified Frontend.Static as Static
 import qualified Frontend.Widget as W
-import "ghcjs-dom" GHCJS.DOM.Document (getBodyUnchecked)
-import GHCJS.DOM.EventM (on, preventDefault)
-import GHCJS.DOM.GlobalEventHandlers (keyDown)
 import GHCJS.DOM.Types (IsHTMLElement)
-import Language.Javascript.JSaddle.Types (MonadJSM)
 import Obelisk.Frontend
 import Obelisk.Route
 import Obelisk.Route.Frontend
@@ -52,7 +47,7 @@ frontend =
         divClass "min-h-screen md:container mx-auto px-4" $ do
           fmap join $
             prerender (pure $ constDyn Nothing) $ do
-              keyE <- captureKey ForwardSlash
+              keyE <- W.captureKey ForwardSlash
               App.runApp $ do
                 rec xDyn <- app update (void keyE)
                     let rev = fmapMaybe (nonReadOnlyRev =<<) $ updated $ fst <$> xDyn
@@ -63,32 +58,6 @@ frontend =
     nonReadOnlyRev = \case
       EmanoteState_AtRev rev -> Just rev
       _ -> Nothing
-
-captureKey ::
-  ( DomBuilder t m,
-    HasDocument m,
-    TriggerEvent t m,
-    DomBuilderSpace m ~ GhcjsDomSpace,
-    MonadJSM m
-  ) =>
-  Key ->
-  m (Event t Key)
-captureKey key = do
-  doc <- askDocument
-  body <- getBodyUnchecked doc
-  kp <- wrapDomEvent body (`on` keyDown) $ do
-    keyEvent <- getKeyEvent
-    let keyPressed = keyCodeLookup (fromEnum keyEvent)
-    -- This 'preventDefault' is here to prevent
-    -- the browser's default behavior when keys
-    -- like <F1> or the arrow keys are pressed.
-    -- If you want to preserve default behavior
-    -- this can be removed, or you can apply it
-    -- selectively, only to certain keypresses.
-    if keyPressed == key
-      then preventDefault >> pure (Just keyPressed)
-      else pure Nothing
-  pure $ fforMaybe kp id
 
 app ::
   forall t m js.
