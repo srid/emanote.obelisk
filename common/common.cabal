@@ -21,10 +21,13 @@ library
     , relude
     , tagged
     , text
+    , megaparsec
+    , parser-combinators
 
   exposed-modules:
     Common.Api
     Common.Route
+    Common.Search
 
   default-extensions:
     NoImplicitPrelude

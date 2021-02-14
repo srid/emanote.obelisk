@@ -6,6 +6,7 @@ module Backend where
 import qualified Algebra.Graph.Labelled.AdjacencyMap.Patch as GP
 import Common.Api
 import Common.Route
+import qualified Common.Search as Search
 import qualified Data.Aeson as Aeson
 import Data.Constraint.Extras (has)
 import qualified Data.Map.Strict as Map
@@ -78,15 +79,13 @@ handleEmanoteApi :: forall m a. MonadIO m => Bool -> Zk -> EmanoteApi a -> m a
 handleEmanoteApi readOnly zk@Zk {..} = \case
   EmanoteApi_GetRev -> do
     Zk.getRev zk
-  EmanoteApi_Search q -> do
-    liftIO $ putTextLn $ "API: Search " <> q
+  EmanoteApi_Search (Search.parseSearchQuery -> q) -> do
+    liftIO $ putTextLn $ "API: Search " <> show q
     graph <- Zk.getGraph zk
     zs <- Zk.getZettels zk
     let getVertices = GP.patchedGraphVertexSet (`Map.member` zs) . G.unGraph
         wIds = getVertices graph
-        matchQuery s =
-          T.toLower q `T.isInfixOf` T.toLower s
-        results = Set.toList $ Set.filter (matchQuery . untag) wIds
+        results = search q (toList wIds)
     pure $ take 10 results
   EmanoteApi_GetNotes -> do
     liftIO $ putStrLn "API: GetNotes"
@@ -103,8 +102,8 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
           let conns =
                 Map.toList $
                   Map.fromListWith (<>) $
-                    fmap (second one . swap) $
-                      G.connectionsOf f wikiLinkID graph
+                    second one . swap
+                      <$> G.connectionsOf f wikiLinkID graph
               ls =
                 conns <&> \(_linkcontext_id, wls :: NonEmpty WikiLink) ->
                   let _linkcontext_effectiveLabel = sconcat $ _wikilink_label <$> wls
@@ -130,7 +129,7 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
     getOrphansAndRoots = do
       zs <- Zk.getZettels zk
       graph <- Zk.getGraph zk
-      let getVertices = GP.patchedGraphVertexSet (flip Map.member zs) . G.unGraph
+      let getVertices = GP.patchedGraphVertexSet (`Map.member` zs) . G.unGraph
           orphans =
             let indexed = getVertices $ G.filterBy (\l -> W.isBranch l || W.isParent l) graph
              in getVertices graph `Set.difference` indexed
@@ -145,3 +144,21 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
                 Affinity_HasParents _ -> Nothing
                 aff -> Just (aff, z)
       pure topLevelNotes
+
+search :: Search.SearchQuery -> [WikiLinkID] -> [WikiLinkID]
+search =
+  filter . match
+  where
+    match :: Search.SearchQuery -> WikiLinkID -> Bool
+    match q wId =
+      case q of
+        Search.SearchQuery_TitleContains titleQ ->
+          T.toLower titleQ `T.isInfixOf` T.toLower (untag wId)
+        Search.SearchQuery_All ->
+          True
+        Search.SearchQuery_And subQueries ->
+          all (`match` wId) subQueries
+        Search.SearchQuery_Or subQueries ->
+          any (`match` wId) subQueries
+        Search.SearchQuery_BranchesFrom _ ->
+          error "not implemented"
