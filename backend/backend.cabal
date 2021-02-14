@@ -31,6 +31,7 @@ library
     , websockets
     , websockets-snap
     , algebraic-graphs-patch
+    , tagged
 
   exposed-modules:    Backend
   default-extensions:

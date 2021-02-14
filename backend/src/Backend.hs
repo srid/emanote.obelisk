@@ -11,6 +11,7 @@ import Data.Constraint.Extras (has)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Data.Some (Some (..))
+import Data.Tagged
 import qualified Data.Text as T
 import qualified Emanote
 import qualified Emanote.Graph as G
@@ -77,6 +78,16 @@ handleEmanoteApi :: forall m a. MonadIO m => Bool -> Zk -> EmanoteApi a -> m a
 handleEmanoteApi readOnly zk@Zk {..} = \case
   EmanoteApi_GetRev -> do
     Zk.getRev zk
+  EmanoteApi_Search q -> do
+    liftIO $ putTextLn $ "API: Search " <> q
+    graph <- Zk.getGraph zk
+    zs <- Zk.getZettels zk
+    let getVertices = GP.patchedGraphVertexSet (`Map.member` zs) . G.unGraph
+        wIds = getVertices graph
+        matchQuery s =
+          T.toLower q `T.isInfixOf` T.toLower s
+        results = Set.toList $ Set.filter (matchQuery . untag) wIds
+    pure $ take 10 results
   EmanoteApi_GetNotes -> do
     liftIO $ putStrLn "API: GetNotes"
     estate <- getEmanoteState

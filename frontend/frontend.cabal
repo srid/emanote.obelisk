@@ -26,11 +26,17 @@ library
     , time
     , pandoc-types
     , skylighting-core
+    , ghcjs-dom
+    , jsaddle-dom
+    , keycode
+    , lens
 
   exposed-modules:
     Frontend
     Frontend.App
+    Frontend.Search
     Frontend.Static
+    Frontend.Widget
 
   default-extensions:
     NoImplicitPrelude

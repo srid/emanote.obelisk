@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
@@ -8,6 +9,7 @@
 
 module Frontend.App
   ( runApp,
+    EmanoteRequester,
     requestingDynamic,
     requestingDynamicWithRefreshEvent,
     pollRevUpdates,
@@ -81,6 +83,12 @@ runApp w = do
             Left xhr -> performXhrRequests xhr (requests :: Event t (RequesterData EmanoteApi))
             Right ws -> performWebSocketRequests ws (requests :: Event t (RequesterData EmanoteApi))
       pure x
+
+type EmanoteRequester t m =
+  ( Response m ~ Either Text,
+    Request m ~ EmanoteApi,
+    Requester t m
+  )
 
 -- | Like @requesting@, but takes a Dynamic instead.
 requestingDynamic ::

@@ -2,9 +2,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RecursiveDo #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Frontend where
 
@@ -16,13 +16,20 @@ import Data.Tagged
 import Emanote.Markdown.WikiLink
 import qualified Emanote.Zk.Type as Zk
 import qualified Frontend.App as App
+import qualified Frontend.Search as Search
 import qualified Frontend.Static as Static
+import qualified Frontend.Widget as W
+import "ghcjs-dom" GHCJS.DOM.Document (getBodyUnchecked)
+import GHCJS.DOM.EventM (on, preventDefault)
+import GHCJS.DOM.GlobalEventHandlers (keyDown)
+import GHCJS.DOM.Types (IsHTMLElement)
+import Language.Javascript.JSaddle.Types (MonadJSM)
 import Obelisk.Frontend
 import Obelisk.Route
 import Obelisk.Route.Frontend
-import Reflex.Dom.Core hiding (Link)
+import Reflex.Dom.Core hiding (Link, preventDefault)
 import qualified Reflex.Dom.Pandoc as PR
-import Relude
+import Relude hiding (on)
 import Skylighting.Format.HTML (styleToCss)
 import qualified Skylighting.Styles as SkylightingStyles
 import Text.Pandoc.Definition (Pandoc (..))
@@ -41,12 +48,13 @@ frontend =
           text " | Emanote"
         elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss SkylightingStyles.espresso
         Static.includeAssets,
-      _frontend_body = do
+      _frontend_body =
         divClass "min-h-screen md:container mx-auto px-4" $ do
           fmap join $
             prerender (pure $ constDyn Nothing) $ do
+              keyE <- captureKey ForwardSlash
               App.runApp $ do
-                rec xDyn <- app update
+                rec xDyn <- app update (void keyE)
                     let rev = fmapMaybe (nonReadOnlyRev =<<) $ updated $ fst <$> xDyn
                     update <- App.pollRevUpdates EmanoteApi_GetRev rightToMaybe rev
                 pure $ snd <$> xDyn
@@ -56,23 +64,53 @@ frontend =
       EmanoteState_AtRev rev -> Just rev
       _ -> Nothing
 
+captureKey ::
+  ( DomBuilder t m,
+    HasDocument m,
+    TriggerEvent t m,
+    DomBuilderSpace m ~ GhcjsDomSpace,
+    MonadJSM m
+  ) =>
+  Key ->
+  m (Event t Key)
+captureKey key = do
+  doc <- askDocument
+  body <- getBodyUnchecked doc
+  kp <- wrapDomEvent body (`on` keyDown) $ do
+    keyEvent <- getKeyEvent
+    let keyPressed = keyCodeLookup (fromEnum keyEvent)
+    -- This 'preventDefault' is here to prevent
+    -- the browser's default behavior when keys
+    -- like <F1> or the arrow keys are pressed.
+    -- If you want to preserve default behavior
+    -- this can be removed, or you can apply it
+    -- selectively, only to certain keypresses.
+    if keyPressed == key
+      then preventDefault >> pure (Just keyPressed)
+      else pure Nothing
+  pure $ fforMaybe kp id
+
 app ::
   forall t m js.
   ( DomBuilder t m,
     MonadHold t m,
     PostBuild t m,
     MonadFix m,
+    TriggerEvent t m,
+    PerformEvent t m,
     Prerender js t m,
+    MonadIO (Performable m),
     RouteToUrl (R FrontendRoute) m,
     SetRoute t (R FrontendRoute) m,
-    Response m ~ Either Text,
-    Request m ~ EmanoteApi,
-    Requester t m
+    IsHTMLElement (RawInputElement (DomBuilderSpace m)),
+    App.EmanoteRequester t m
   ) =>
   Event t Zk.Rev ->
+  Event t () ->
   RoutedT t (R FrontendRoute) m (Dynamic t (Maybe EmanoteState, Maybe Text))
-app updateAvailable = do
+app updateAvailable searchTrigger =
   divClass "flex flex-wrap justify-center flex-row-reverse md:-mx-2 overflow-hidden" $ do
+    Search.searchWidget searchTrigger
     fmap join $
       subRoute $ \case
         FrontendRoute_Main -> do
@@ -84,7 +122,8 @@ app updateAvailable = do
                 [ fmap (const True) (updated req),
                   fmap (const False) resp
                 ]
-          fmap (,Just "Home") <$> homeWidget waiting resp
+          currentRev <- homeWidget waiting resp
+          pure $ (,Just "Home") <$> currentRev
         FrontendRoute_Note -> do
           req <- fmap EmanoteApi_Note <$> askRoute
           resp <- App.requestingDynamicWithRefreshEvent req (() <$ updateAvailable)
@@ -94,7 +133,7 @@ app updateAvailable = do
                 [ fmap (const True) (updated req),
                   fmap (const False) resp
                 ]
-          currentRev :: Dynamic t (Maybe EmanoteState) <- noteWidget waiting resp
+          currentRev <- noteWidget waiting resp
           titleDyn <- fmap (Just . untag) <$> askRoute
           pure $ (,) <$> currentRev <*> titleDyn
 
@@ -111,7 +150,7 @@ homeWidget ::
   Dynamic t Bool ->
   Event t (Either Text (EmanoteState, [(Affinity, WikiLinkID)])) ->
   RoutedT t () m (Dynamic t (Maybe EmanoteState))
-homeWidget waiting resp = do
+homeWidget waiting resp =
   elMainPanel waiting $ do
     elMainHeading $ text "Emanote"
     elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
@@ -123,7 +162,7 @@ homeWidget waiting resp = do
         void $
           simpleList notesDyn $ \xDyn -> do
             elClass "li" "mb-2" $ do
-              renderWikiLink mempty (constDyn WikiLinkLabel_Unlabelled) (snd <$> xDyn)
+              W.renderWikiLink mempty (constDyn WikiLinkLabel_Unlabelled) (snd <$> xDyn)
               dyn_ $
                 affinityLabel . fst <$> xDyn
       pure $ Just <$> stateDyn
@@ -141,7 +180,7 @@ noteWidget ::
   Dynamic t Bool ->
   Event t (Either Text (EmanoteState, Note)) ->
   RoutedT t WikiLinkID m (Dynamic t (Maybe EmanoteState))
-noteWidget waiting resp = do
+noteWidget waiting resp =
   withBackendResponse resp (constDyn Nothing) $ \result -> do
     let noteDyn = snd <$> result
         stateDyn :: Dynamic t EmanoteState = fst <$> result
@@ -191,7 +230,7 @@ noteWidget waiting resp = do
           Nothing ->
             elSidePanelBox "Nav" $ do
               routeLinkDynAttr
-                (constDyn $ wikiLinkAttrs <> "title" =: "link:home")
+                (constDyn $ W.wikiLinkAttrs <> "title" =: "link:home")
                 (constDyn $ FrontendRoute_Main :/ ())
                 $ text "Home"
           Just uplinksNE ->
@@ -220,48 +259,22 @@ noteWidget waiting resp = do
   where
     renderLinkContexts ls =
       void $
-        simpleList ls $ \lDyn -> do
+        simpleList ls $ \lDyn ->
           divClass "pt-1" $ do
             divClass "linkheader" $
-              renderLinkContextLink wikiLinkAttrs lDyn
+              renderLinkContextLink W.wikiLinkAttrs lDyn
             divClass "opacity-50 hover:opacity-100 text-sm" $ do
               renderLinkContextBody $ _linkcontext_ctxList <$> lDyn
-    renderLinkContextLink attrs lDyn = do
-      renderWikiLink
+    renderLinkContextLink attrs lDyn =
+      W.renderWikiLink
         attrs
         (_linkcontext_effectiveLabel <$> lDyn)
         (_linkcontext_id <$> lDyn)
-    renderLinkContextBody (ctxs :: Dynamic t [WikiLinkContext]) = do
+    renderLinkContextBody (ctxs :: Dynamic t [WikiLinkContext]) =
       void $
         simpleList ctxs $ \ctx -> do
           divClass "mb-1 pb-1 border-b-2 border-black-200" $
             dyn_ $ renderPandoc . Pandoc mempty <$> ctx
-
-wikiLinkAttrs :: Map AttributeName Text
-wikiLinkAttrs =
-  "class" =: "text-green-700"
-
-renderWikiLink ::
-  ( PostBuild t m,
-    RouteToUrl (R FrontendRoute) m,
-    SetRoute t (R FrontendRoute) m,
-    Prerender js t m,
-    DomBuilder t m
-  ) =>
-  Map AttributeName Text ->
-  Dynamic t WikiLinkLabel ->
-  Dynamic t WikiLinkID ->
-  m ()
-renderWikiLink attrs lbl wId =
-  routeLinkDynAttr
-    ( ffor lbl $ \x ->
-        "title" =: show x <> attrs
-    )
-    ( ffor wId $ \x ->
-        FrontendRoute_Note :/ x
-    )
-    $ do
-      dynText $ untag <$> wId
 
 renderPandoc ::
   ( PostBuild t m,
@@ -285,7 +298,7 @@ renderPandoc doc = do
         pure $ do
           let r = constDyn $ FrontendRoute_Note :/ wId
               attr = constDyn $ "title" =: show lbl
-          routeLinkDynAttr attr r $ do
+          routeLinkDynAttr attr r $
             text $ untag wId
 
 affinityLabel :: DomBuilder t m => Affinity -> m ()
@@ -297,12 +310,12 @@ affinityLabel = \case
     elClass "span" "border-2 bg-purple-600 text-white ml-2 p-0.5 text-sm rounded" $
       text "Root"
   Affinity_HasParents n ->
-    elClass "span" "border-2 text-gray ml-2 p-0.5 text-sm rounded" $ do
+    elClass "span" "border-2 text-gray ml-2 p-0.5 text-sm rounded" $
       elAttr "span" ("title" =: (show n <> " parents")) $
         text $ show n
 
 loader :: DomBuilder t m => m ()
-loader = do
+loader =
   divClass "grid grid-cols-3 ml-0 pl-0 content-evenly" $ do
     divClass "col-start-1 col-span-3 h-16" blank
     divClass "col-start-2 col-span-1 place-self-center p-4 h-full bg-black text-white rounded" $
@@ -327,14 +340,14 @@ withBackendResponse ::
   m (Dynamic t v)
 withBackendResponse resp v0 f = do
   mresp <- maybeDyn =<< holdDyn Nothing (Just <$> resp)
-  (fmap join . holdDyn v0) <=< dyn $
+  fmap join . holdDyn v0 <=< dyn $
     ffor mresp $ \case
       Nothing -> do
         loader
         pure v0
       Just resp' -> do
         eresp <- eitherDyn resp'
-        (fmap join . holdDyn v0) <=< dyn $
+        fmap join . holdDyn v0 <=< dyn $
           ffor eresp $ \case
             Left errDyn -> do
               dynText $ show <$> errDyn
@@ -347,7 +360,7 @@ withBackendResponse resp v0 f = do
 -- | Main column
 elMainPanel :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
 elMainPanel waiting =
-  divClassMayLoading waiting "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6"
+  divClassMayLoading waiting "w-full overflow-hidden md:px-2 md:w-4/6"
 
 -- | Heading in main column
 elMainHeading :: DomBuilder t m => m a -> m a
@@ -357,7 +370,7 @@ elMainHeading =
 -- | Side column
 elSidePanel :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
 elSidePanel waiting =
-  divClassMayLoading waiting "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6"
+  divClassMayLoading waiting "w-full overflow-hidden md:px-2 md:w-2/6"
 
 -- | Bottom footer
 elFooter :: (DomBuilder t m) => m a -> m a
@@ -369,8 +382,7 @@ elSidePanelBox :: DomBuilder t m => Text -> m a -> m a
 elSidePanelBox name w =
   divClass ("linksBox animated " <> name) $ do
     elClass "h2" "header text-xl w-full pl-2 pt-2 pb-2 font-serif bg-green-100 " $ text name
-    divClass "p-2" $ do
-      w
+    divClass "p-2" w
 
 divClassMayLoading :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> Text -> m a -> m a
 divClassMayLoading waiting cls =

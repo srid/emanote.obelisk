@@ -64,6 +64,7 @@ data EmanoteApi :: * -> * where
   EmanoteApi_GetRev :: EmanoteApi Zk.Rev
   EmanoteApi_GetNotes :: EmanoteApi (EmanoteState, [(Affinity, EM.WikiLinkID)])
   EmanoteApi_Note :: EM.WikiLinkID -> EmanoteApi (EmanoteState, Note)
+  EmanoteApi_Search :: Text -> EmanoteApi [EM.WikiLinkID]
 
 deriveGShow ''EmanoteApi
 deriveJSONGADT ''EmanoteApi
