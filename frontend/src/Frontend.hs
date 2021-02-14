@@ -79,7 +79,13 @@ app updateAvailable = do
         FrontendRoute_Main -> do
           req <- fmap (const EmanoteApi_GetNotes) <$> askRoute
           resp <- App.requestingDynamicWithRefreshEvent req (() <$ updateAvailable)
-          fmap (,Just "Home") <$> homeWidget resp
+          waiting <-
+            holdDyn True $
+              leftmost
+                [ fmap (const True) (updated req),
+                  fmap (const False) resp
+                ]
+          fmap (,Just "Home") <$> homeWidget waiting resp
         FrontendRoute_Note -> do
           req <- fmap EmanoteApi_Note <$> askRoute
           resp <- App.requestingDynamicWithRefreshEvent req (() <$ updateAvailable)
@@ -103,11 +109,12 @@ homeWidget ::
     Prerender js t m,
     MonadFix m
   ) =>
+  Dynamic t Bool ->
   Event t (Either Text (EmanoteState, [(Affinity, WikiLinkID)])) ->
   RoutedT t () m (Dynamic t (Maybe EmanoteState))
-homeWidget resp = do
-  divClass "w-full md:w-1/2 overflow-hidden md:my-2 md:px-2" $ do
-    elClass "h1" "text-3xl text-green-700 font-bold pb-2 mt-4" $ text "Emanote"
+homeWidget waiting resp = do
+  elMainPanel waiting $ do
+    elMainHeading $ text "Emanote"
     elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
       text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display root folgezettels and orphans (if any)."
     withBackendResponse resp (constDyn Nothing) $ \result -> do
@@ -136,16 +143,14 @@ noteWidget ::
   Event t (Either Text (EmanoteState, Note)) ->
   RoutedT t WikiLinkID m (Dynamic t (Maybe EmanoteState))
 noteWidget waiting resp = do
-  let divClassMayLoading cls =
-        elDynClass "div" (ffor waiting $ bool cls (cls <> " animate-pulse"))
   withBackendResponse resp (constDyn Nothing) $ \result -> do
     let noteDyn = snd <$> result
         stateDyn :: Dynamic t EmanoteState = fst <$> result
         uplinks = _note_uplinks <$> noteDyn
         backlinks = _note_backlinks <$> noteDyn
         downlinks = _note_downlinks <$> noteDyn
-    divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6" $ do
-      elClass "h1" "text-3xl text-green-700 font-bold mt-2 mb-4" $ do
+    elMainPanel waiting $ do
+      elMainHeading $ do
         r <- askRoute
         dynText $ untag <$> r
       mzettel <- maybeDyn $ _note_zettel <$> noteDyn
@@ -176,7 +181,7 @@ noteWidget waiting resp = do
       renderLinkContexts "Tagged by" downlinks $ \ctx -> do
         divClass "opacity-50 hover:opacity-100 text-sm" $ do
           renderLinkContextBody ctx
-    divClassMayLoading "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6" $ do
+    elSidePanel waiting $ do
       divClass "" $ do
         routeLink (FrontendRoute_Main :/ ()) $
           elClass "button" "font-serif border-1 p-2 text-white rounded place-self-center border-green-700 bg-green-400 hover:opacity-70" $
@@ -187,7 +192,7 @@ noteWidget waiting resp = do
       renderLinkContexts "Backlinks" backlinks $ \ctx -> do
         divClass "opacity-50 hover:opacity-100 text-sm" $ do
           renderLinkContextBody ctx
-    divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2" $ do
+    elFooter $ do
       let url = "https://github.com/srid/emanote"
       text "Powered by "
       elAttr "a" ("href" =: url) $
@@ -229,6 +234,26 @@ noteWidget waiting resp = do
         simpleList ctxs $ \ctx -> do
           divClass "mb-1 pb-1 border-b-2 border-black-200" $
             dyn_ $ renderPandoc . Pandoc mempty <$> ctx
+
+divClassMayLoading :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> Text -> m a -> m a
+divClassMayLoading waiting cls =
+  elDynClass "div" (ffor waiting $ bool cls (cls <> " animate-pulse"))
+
+elMainPanel :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
+elMainPanel waiting =
+  divClassMayLoading waiting "w-full overflow-hidden md:my-2 md:px-2 md:w-4/6"
+
+elMainHeading :: DomBuilder t m => m a -> m a
+elMainHeading =
+  elClass "h1" "text-3xl text-green-700 font-bold mt-2 mb-4"
+
+elSidePanel :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
+elSidePanel waiting =
+  divClassMayLoading waiting "w-full overflow-hidden md:my-2 md:px-2 md:w-2/6"
+
+elFooter :: (DomBuilder t m) => m a -> m a
+elFooter =
+  divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2"
 
 renderWikiLink ::
   ( PostBuild t m,
