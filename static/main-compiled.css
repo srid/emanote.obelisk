@@ -585,80 +585,81 @@ div.linksBox.animated {
 
 /* Pandoc */
 
-div.pandoc {
+.pandoc {
   overflow-y: auto;
   overflow-wrap: break-word;
 }
 
-div.pandoc input[type="checkbox"] {
+.pandoc input[type="checkbox"] {
   place-content: center;
   margin-right: 0.5rem;
 }
 
-div.pandoc code {
+.pandoc code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-div.pandoc table  {
+.pandoc table  {
   --tw-border-opacity: 1;
   border-color: rgba(0, 0, 0, var(--tw-border-opacity));
   border-style: solid;
   border-width: 2px;
   table-layout: auto;
+  width: 100%;
 }
 
-div.pandoc table thead {
+.pandoc table thead {
   --tw-bg-opacity: 1;
   background-color: rgba(229, 231, 235, var(--tw-bg-opacity));
 }
 
-div.pandoc table thead th {
+.pandoc table thead th {
   text-align: left;
 }
 
-div.pandoc table tr {
+.pandoc table tr {
   --tw-border-opacity: 1;
   border-color: rgba(0, 0, 0, var(--tw-border-opacity));
   border-style: solid;
   border-bottom-width: 2px;
 }
 
-div.pandoc table th, div.pandoc table td {
+.pandoc table th, .pandoc table td {
   padding: 0.5rem;
 }
 
 /* Only on note's pandoc */
 
-div.notePandoc > div.pandoc p {
+div.notePandoc > .pandoc p {
   margin-bottom: 0.75rem;
 }
 
-div.pandoc ul, div.pandoc ol {
+.pandoc ul, .pandoc ol {
   padding-left: 2rem;  /* 2rem to allow 1-99 list elements */
 }
 
-div.pandoc > ul, div.pandoc > ol {
+.pandoc > ul, .pandoc > ol {
   margin-bottom: 0.75rem;
 }
 
-div.pandoc ul {
+.pandoc ul {
   list-style-type: disc;
 }
 
-div.pandoc ol {
+.pandoc ol {
   list-style-type: decimal;
 }
 
-div.pandoc h1 {
+.pandoc h1 {
   /* H1 is reserved, but do some styling anyway */
   text-align: center;
 }
 
-div.pandoc h2, div.pandoc h3, div.pandoc h4, div.pandoc h5, div.pandoc h6 {
+.pandoc h2, .pandoc h3, .pandoc h4, .pandoc h5, .pandoc h6 {
   margin-bottom: 0.75rem;
 }
 
-div.pandoc h2 {
+.pandoc h2 {
   font-size: 1.875rem;
   line-height: 2.25rem;
   text-decoration: underline;
@@ -666,27 +667,27 @@ div.pandoc h2 {
           text-decoration-color: rgba(10,10,10,0.1);
 }
 
-div.pandoc h3 {
+.pandoc h3 {
   font-size: 1.5rem;
   line-height: 2rem;
 }
 
-div.pandoc h4 {
+.pandoc h4 {
   font-size: 1.25rem;
   line-height: 1.75rem;
 }
 
-div.pandoc h5 {
+.pandoc h5 {
   font-size: 1.125rem;
   line-height: 1.75rem;
 }
 
-div.pandoc h6 {
+.pandoc h6 {
   font-size: 1rem;
   line-height: 1.5rem;
 }
 
-div.pandoc blockquote {
+.pandoc blockquote {
   --tw-bg-opacity: 1;
   background-color: rgba(243, 244, 246, var(--tw-bg-opacity));
   --tw-border-opacity: 1;
@@ -696,7 +697,7 @@ div.pandoc blockquote {
   padding: 0.5rem;
 }
 
-div.pandoc div.pandoc-code {
+.pandoc .pandoc-code {
   --tw-bg-opacity: 1;
   background-color: rgba(243, 244, 246, var(--tw-bg-opacity));
   border-radius: 0.25rem;
@@ -708,13 +709,13 @@ div.pandoc div.pandoc-code {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
-div.pandoc div#footnotes::before {
+.pandoc div#footnotes::before {
   content: "Footnotes";
   font-weight: 700;
   text-decoration: underline;
 }
 
-div.pandoc div#footnotes {
+.pandoc div#footnotes {
   --tw-bg-opacity: 1;
   background-color: rgba(243, 244, 246, var(--tw-bg-opacity));
   border-top-width: 2px;
@@ -724,19 +725,15 @@ div.pandoc div#footnotes {
   color: rgba(55, 65, 81, var(--tw-text-opacity));
 }
 
-div.pandoc div#footnotes ol {
-  list-style-position: inside
-}
-
-div.pandoc div#footnotes ol li[id^="fn"] {
+.pandoc div#footnotes ol li[id^="fn"] {
   margin-bottom: 0.5rem;
 }
 
-div.pandoc div#footnotes ol li[id^="fn"] p:first-child {
+.pandoc div#footnotes ol li[id^="fn"] p:first-child {
   display: inline;
 }
 
-div.pandoc div#footnotes ol li[id^="fn"] a[href^="#fnref"] {
+.pandoc div#footnotes ol li[id^="fn"] a[href^="#fnref"] {
   /* Link is broken */
   display: none;
 }
@@ -745,13 +742,13 @@ div.pandoc div#footnotes ol li[id^="fn"] a[href^="#fnref"] {
      Display these only in the Pandoc note (not in backlinks panel, etc.)
   */
 
-div.pandoc a[title="link:branch"]::after {
+.pandoc a[title="link:branch"]::after {
   --tw-text-opacity: 1;
   color: rgba(107, 114, 128, var(--tw-text-opacity));
   content: "#";
 }
 
-div.pandoc a[title="link:tag"]::before {
+.pandoc a[title="link:tag"]::before {
   --tw-text-opacity: 1;
   color: rgba(107, 114, 128, var(--tw-text-opacity));
   content: "#";

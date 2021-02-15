@@ -18,94 +18,91 @@
   }
 
   /* Pandoc */
-  div.pandoc {
+  .pandoc {
     @apply break-words overflow-y-auto;
   }
-  div.pandoc input[type="checkbox"] {
+  .pandoc input[type="checkbox"] {
     @apply mr-2 place-content-center;
   }
-  div.pandoc code {
+  .pandoc code {
     @apply font-mono;
   }
 
-  div.pandoc table  {
-    @apply table-auto border-solid border-2 border-black;
+  .pandoc table  {
+    @apply w-full table-auto border-solid border-2 border-black;
   }
-  div.pandoc table thead {
+  .pandoc table thead {
     @apply bg-gray-200;
   }
-  div.pandoc table thead th {
+  .pandoc table thead th {
     @apply text-left;
   }
-  div.pandoc table tr {
+  .pandoc table tr {
     @apply border-solid border-b-2 border-black;
   }
-  div.pandoc table th, div.pandoc table td {
+  .pandoc table th, .pandoc table td {
     @apply p-2;
   }
 
   /* Only on note's pandoc */
-  div.notePandoc > div.pandoc p {
+  div.notePandoc > .pandoc p {
     @apply mb-3;
   }
-  div.pandoc ul, div.pandoc ol {
+  .pandoc ul, .pandoc ol {
     @apply pl-8;  /* 2rem to allow 1-99 list elements */
   }
-  div.pandoc > ul, div.pandoc > ol {
+  .pandoc > ul, .pandoc > ol {
     @apply mb-3;
   }
-  div.pandoc ul {
+  .pandoc ul {
     @apply list-disc ;
   }
-  div.pandoc ol {
+  .pandoc ol {
     @apply list-decimal ;
   }
-  div.pandoc h1 {
+  .pandoc h1 {
     /* H1 is reserved, but do some styling anyway */
     @apply text-center;
   }
-  div.pandoc h2, div.pandoc h3, div.pandoc h4, div.pandoc h5, div.pandoc h6 {
+  .pandoc h2, .pandoc h3, .pandoc h4, .pandoc h5, .pandoc h6 {
     @apply mb-3;
   }
-  div.pandoc h2 {
+  .pandoc h2 {
     @apply  text-3xl underline;
     text-decoration-color: rgba(10,10,10,0.1);
   }
-  div.pandoc h3 {
+  .pandoc h3 {
     @apply  text-2xl;
   }
-  div.pandoc h4 {
+  .pandoc h4 {
     @apply  text-xl;
   }
-  div.pandoc h5 {
+  .pandoc h5 {
     @apply  text-lg;
   }
-  div.pandoc h6 {
+  .pandoc h6 {
     @apply  text-base;
   }
-  div.pandoc blockquote {
+  .pandoc blockquote {
     @apply border-l-4 border-gray-500 ml-2 p-2 bg-gray-100;
   }
-  div.pandoc div.pandoc-code {
+  .pandoc .pandoc-code {
     @apply bg-gray-100 my-2 p-2 rounded shadow overflow-y-auto;
   }
-  div.pandoc div#footnotes::before {
+  .pandoc div#footnotes::before {
     content: "Footnotes";
     @apply underline font-bold;
   }
-  div.pandoc div#footnotes {
+  .pandoc div#footnotes {
     @apply bg-gray-100 text-gray-700 border-t-2 p-2 mt-4;
   }
-  div.pandoc div#footnotes ol {
-    @apply list-inside
-  }
-  div.pandoc div#footnotes ol li[id^="fn"] {
+  .pandoc div#footnotes ol li[id^="fn"] {
     @apply mb-2;
   }
-  div.pandoc div#footnotes ol li[id^="fn"] p:first-child {
+  .pandoc div#footnotes ol li[id^="fn"] p:first-child {
     @apply inline;
   }
-  div.pandoc div#footnotes ol li[id^="fn"] a[href^="#fnref"] {
+  .pandoc div#footnotes ol li[id^="fn"] a[href^="#fnref"] {
     /* Link is broken */
     @apply hidden;
   }
@@ -113,11 +110,11 @@
   /* Link types
      Display these only in the Pandoc note (not in backlinks panel, etc.)
   */
-  div.pandoc a[title="link:branch"]::after {
+  .pandoc a[title="link:branch"]::after {
     @apply text-gray-500;
     content: "#";
   }
-  div.pandoc a[title="link:tag"]::before {
+  .pandoc a[title="link:tag"]::before {
     @apply text-gray-500;
     content: "#";
   }

@@ -265,7 +265,8 @@ renderPandoc doc = do
         PR.defaultConfig
           { PR._config_renderLink = linkRender
           }
-  PR.elPandoc cfg doc
+  divClass "pandoc" $ 
+    PR.elPandoc cfg doc
   where
     linkRender _defRender url attrs minner = do
       case parseWikiLinkUrl (Map.lookup "title" attrs) url of
