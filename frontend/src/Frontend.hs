@@ -123,7 +123,7 @@ homeWidget waiting resp =
   elMainPanel waiting $ do
     elMainHeading $ text "Emanote"
     elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
-      text "Welcome to Emanote. This place will soon look like a search engine, allowing you to query your notebook graph. For now, we simply display root folgezettels and orphans (if any)."
+      text "Welcome to Emanote. Navigate from the notes below, or use the search feature above."
     withBackendResponse resp (constDyn Nothing) $ \result -> do
       let notesDyn = snd <$> result
           stateDyn = fst <$> result
