@@ -634,7 +634,7 @@ div.notePandoc > div.pandoc p {
 }
 
 div.pandoc ul, div.pandoc ol {
-  padding-left: 1rem;
+  padding-left: 2rem;  /* 2rem to allow 1-99 list elements */
 }
 
 div.pandoc > ul, div.pandoc > ol {

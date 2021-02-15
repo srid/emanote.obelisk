@@ -49,7 +49,7 @@
     @apply mb-3;
   }
   div.pandoc ul, div.pandoc ol {
-    @apply pl-4;
+    @apply pl-8;  /* 2rem to allow 1-99 list elements */
   }
   div.pandoc > ul, div.pandoc > ol {
     @apply mb-3;
