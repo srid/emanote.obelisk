@@ -200,27 +200,27 @@ noteWidget waiting resp =
         ffor mDownlinks $ \case
           Nothing -> blank
           Just backlinksNE ->
-            elSidePanelBox "Downlinks" $
+            elSidePanelBox "Downlinks ↘" $
               renderLinkContexts (toList <$> backlinksNE)
     elSidePanel waiting $ do
       mUplinks <- maybeDyn $ nonEmpty <$> uplinks
       dyn_ $
         ffor mUplinks $ \case
           Nothing ->
-            elSidePanelBox "Nav" $ do
+            elSidePanelBox "Nav ↖" $ do
               routeLinkDynAttr
                 (constDyn $ W.wikiLinkAttrs <> "title" =: "link:home")
                 (constDyn $ FrontendRoute_Main :/ ())
                 $ text "Home"
           Just uplinksNE ->
-            elSidePanelBox "Uplinks" $
+            elSidePanelBox "Uplinks ↖" $
               renderLinkContexts (toList <$> uplinksNE)
       mBacklinks <- maybeDyn $ nonEmpty <$> backlinks
       dyn_ $
         ffor mBacklinks $ \case
           Nothing -> blank
           Just backlinksNE ->
-            elSidePanelBox "Backlinks" $
+            elSidePanelBox "Backlinks ⇠" $
               renderLinkContexts (toList <$> backlinksNE)
     elFooter $ do
       let url = "https://github.com/srid/emanote"
@@ -359,8 +359,8 @@ elFooter =
 -- | A box in side column
 elSidePanelBox :: DomBuilder t m => Text -> m a -> m a
 elSidePanelBox name w =
-  divClass ("linksBox animated " <> name) $ do
-    elClass "h2" "header text-xl w-full pl-2 pt-2 pb-2 font-serif bg-green-100 " $ text name
+  divClass "linksBox animated" $ do
+    elClass "h2" "header text-xl w-full pl-1.5 py-1 font-serif bg-green-100" $ text name
     divClass "p-2" w
 
 divClassMayLoading :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> Text -> m a -> m a

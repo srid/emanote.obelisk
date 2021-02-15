@@ -10,7 +10,7 @@ Note:
 
 - Edit `config/backend/notesDir` to run on your own notebook instead of on `./doc`.
 - The development server may be glitchy, and slow at times (due to jsaddle being unreliable). 
-  - You can try disabling websockets; set `config/frontend/requestType` to `xhr`.
-  - The full build doesn't suffer from this issue; so you should use websockets there.
+  - When that happens, simply restart `ob run`
+  - The full build doesn't suffer from this issue.
 
 To do a **full build**, refer to Obelisk's deployment guide.
