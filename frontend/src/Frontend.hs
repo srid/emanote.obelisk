@@ -43,7 +43,7 @@ frontend =
           dynText $ fromMaybe "..." <$> titDyn
           text " | "
           elSiteTitle
-        elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss SkylightingStyles.espresso
+        elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss SkylightingStyles.tango
         Static.includeAssets,
       _frontend_body =
         divClass "min-h-screen md:container mx-auto px-4" $ do
@@ -262,12 +262,21 @@ renderPandoc ::
   m ()
 renderPandoc doc = do
   let cfg =
-        PR.defaultConfig
-          { PR._config_renderLink = linkRender
+        (PR.defaultConfig @t @m)
+          { PR._config_renderLink = linkRender,
+            PR._config_renderRaw = renderRaw
           }
-  divClass "pandoc" $ 
+  divClass "pandoc" $
     PR.elPandoc cfg doc
   where
+    renderRaw :: PR.PandocRawNode -> m ()
+    renderRaw = \case
+      PR.PandocRawNode_Block "html" x ->
+        prerender_ blank $ void $ elDynHtml' "div" (constDyn x)
+      PR.PandocRawNode_Inline "html" x ->
+        prerender_ blank $ void $ elDynHtml' "span" (constDyn x)
+      x ->
+        text (show x)
     linkRender _defRender url attrs minner = do
       case parseWikiLinkUrl (Map.lookup "title" attrs) url of
         Just (lbl, wId) -> do
