@@ -28,7 +28,7 @@ import qualified Reflex.Dom.Pandoc as PR
 import Relude hiding (on)
 import Skylighting.Format.HTML (styleToCss)
 import qualified Skylighting.Styles as SkylightingStyles
-import Text.Pandoc.Definition (Pandoc (..))
+import Text.Pandoc.Definition (Block (Plain), Pandoc (..))
 
 -- This runs in a monad that can be run on the client or the server.
 -- To run code in a pure client or pure server context, use one of the
@@ -225,8 +225,7 @@ noteWidget waiting resp =
     elFooter $ do
       let url = "https://github.com/srid/emanote"
       text "Powered by "
-      elAttr "a" ("href" =: url) $
-        text "Emanote"
+      W.linkOpenInNewWindow mempty url $ text "Emanote"
       dyn_ $
         ffor stateDyn $ \case
           EmanoteState_ReadOnly -> blank
@@ -256,6 +255,7 @@ noteWidget waiting resp =
             dyn_ $ renderPandoc . Pandoc mempty <$> ctx
 
 renderPandoc ::
+  forall t m js.
   ( PostBuild t m,
     RouteToUrl (R FrontendRoute) m,
     SetRoute t (R FrontendRoute) m,
@@ -271,14 +271,19 @@ renderPandoc doc = do
           }
   PR.elPandoc cfg doc
   where
-    linkRender defRender url attrs _minner =
-      fromMaybe defRender $ do
-        (lbl, wId) <- parseWikiLinkUrl (Map.lookup "title" attrs) url
-        pure $ do
+    linkRender _defRender url attrs minner = do
+      case parseWikiLinkUrl (Map.lookup "title" attrs) url of
+        Just (lbl, wId) -> do
           let r = constDyn $ FrontendRoute_Note :/ wId
               attr = constDyn $ "title" =: show lbl
           routeLinkDynAttr attr r $
             text $ untag wId
+        Nothing ->
+          W.linkOpenInNewWindow attrs url $ do
+            case minner of
+              Nothing -> text url
+              Just inner ->
+                PR.elPandoc PR.defaultConfig (Pandoc mempty $ one $ Plain inner)
 
 affinityLabel :: DomBuilder t m => Affinity -> m ()
 affinityLabel = \case
@@ -354,7 +359,7 @@ elSidePanel waiting =
 -- | Bottom footer
 elFooter :: (DomBuilder t m) => m a -> m a
 elFooter =
-  divClass "w-full md:my-2 md:px-2 content-center text-gray-400 border-t-2"
+  divClass "w-auto md:my-2 md:px-2 content-center text-gray-400 border-t-2"
 
 -- | A box in side column
 elSidePanelBox :: DomBuilder t m => Text -> m a -> m a

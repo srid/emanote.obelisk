@@ -70,3 +70,7 @@ captureKey keyMap = do
         -- preventDefault
         pure (Just v)
   pure $ fforMaybe kp id
+
+linkOpenInNewWindow :: DomBuilder t m => Map Text Text -> Text -> m a -> m a
+linkOpenInNewWindow attrs url w = do
+  elAttr "a" (attrs <> "target" =: "_blank" <> "href" =: url) w
