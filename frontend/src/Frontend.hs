@@ -129,9 +129,9 @@ homeWidget ::
   Event t (Either Text (EmanoteState, (Pandoc, [(Affinity, WikiLinkID)]))) ->
   RoutedT t () m (Dynamic t (Maybe EmanoteState))
 homeWidget waiting resp = do
-  stateDyn <- elMainPanel waiting $ do
-    elMainHeading elSiteTitle
-    withBackendResponse resp (constDyn Nothing) $ \result -> do
+  withBackendResponse resp (constDyn Nothing) $ \result -> do
+    stateDyn <- elMainPanel waiting $ do
+      elMainHeading elSiteTitle
       let notesDyn = snd . snd <$> result
           blurbDyn = fst . snd <$> result
           stateDyn = fst <$> result
@@ -145,12 +145,12 @@ homeWidget waiting resp = do
               dyn_ $
                 affinityLabel . fst <$> xDyn
       pure $ Just <$> stateDyn
-  -- Add an empty sidepanel, to make the subsequent footer position itself at
-  -- the bottom. Kind of a hack, but it also makes the layout be consistent with
-  -- the notes route.
-  elSidePanel (constDyn False) blank
-  appFooter stateDyn
-  pure stateDyn
+    -- Add an empty sidepanel, to make the subsequent footer position itself at
+    -- the bottom. Kind of a hack, but it also makes the layout be consistent with
+    -- the notes route.
+    elSidePanel (constDyn False) blank
+    appFooter stateDyn
+    pure stateDyn
 
 noteWidget ::
   forall js t m.
@@ -295,13 +295,6 @@ affinityLabel = \case
       elAttr "span" ("title" =: (show n <> " parents")) $
         text $ show n
 
-loader :: DomBuilder t m => m ()
-loader =
-  divClass "grid grid-cols-3 ml-0 pl-0 content-evenly" $ do
-    divClass "col-start-1 col-span-3 h-16" blank
-    divClass "col-start-2 col-span-1 place-self-center p-4 h-full bg-black text-white rounded" $
-      text "Loading..."
-
 -- Handle a response event from backend, and invoke the given widget for the
 -- actual result.
 --
@@ -335,6 +328,13 @@ withBackendResponse resp v0 f = do
               pure v0
             Right result ->
               f result
+  where
+    loader :: DomBuilder t m => m ()
+    loader =
+      divClass "grid grid-cols-3 ml-0 pl-0 content-evenly" $ do
+        divClass "col-start-1 col-span-3 h-16" blank
+        divClass "col-start-2 col-span-1 place-self-center p-4 h-full bg-black text-white rounded" $
+          text "Loading..."
 
 -- Layout
 
