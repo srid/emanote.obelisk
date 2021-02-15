@@ -1,5 +1,4 @@
 main-compiled.css linguist-generated
 style/*.nix linguist-generated
 dep/* linguist-vendored
-.obelisk/* linguist-vendored
-
+doc/* linguist-documentation
