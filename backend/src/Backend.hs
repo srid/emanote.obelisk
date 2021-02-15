@@ -104,7 +104,8 @@ handleEmanoteApi readOnly siteBlurb zk@Zk {..} = \case
     zs <- Zk.getZettels zk
     graph <- Zk.getGraph zk
     let mz = Map.lookup wikiLinkID zs
-        mkLinkCtxList f = do
+        mkLinkCtxList :: forall k. Ord k => (Directed WikiLinkLabel -> Bool) -> (LinkContext -> Down k) -> [LinkContext]
+        mkLinkCtxList f sortField = do
           let conns =
                 Map.toList $
                   Map.fromListWith (<>) $
@@ -115,15 +116,23 @@ handleEmanoteApi readOnly siteBlurb zk@Zk {..} = \case
                   let _linkcontext_effectiveLabel = sconcat $ _wikilink_label <$> wls
                       _linkcontext_ctxList = mapMaybe _wikilink_ctx $ toList wls
                    in LinkContext {..}
-          -- Sort in reverse order so that daily notes (calendar) are pushed down.
-          sortOn Down ls
+          sortOn sortField ls
         note =
           Note
             wikiLinkID
             mz
-            (mkLinkCtxList W.isBacklink)
-            (mkLinkCtxList W.isTaggedBy)
-            (mkLinkCtxList W.isUplink)
+            -- Sort backlinks by ID, so as to effectively push daily notes to
+            -- the bottom.
+            (mkLinkCtxList W.isBacklink $ Down . _linkcontext_id)
+            -- Downlinks are sorted by context, so as to allow the user to
+            -- control their sort order.
+            --
+            -- This useful for Blog downlinks, which typically link to date in
+            -- their context, thus effecting allowing a listing that is sorted
+            -- by date (mimicking blog timeline)
+            (mkLinkCtxList W.isTaggedBy $ Down . _linkcontext_ctxList)
+            -- See note above re: backlinks.
+            (mkLinkCtxList W.isUplink $ Down . _linkcontext_id)
     pure (estate, note)
   where
     getEmanoteState :: m EmanoteState

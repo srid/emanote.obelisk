@@ -41,9 +41,6 @@ data LinkContext = LinkContext
   }
   deriving (Eq, Generic, ToJSON, FromJSON)
 
-instance Ord LinkContext where
-  compare = compare `on` _linkcontext_id
-
 -- | Folgezettel affinity of a note
 data Affinity
   = -- Has 1+ folgezettel parents

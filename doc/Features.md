@@ -9,6 +9,8 @@
   - Linking as `[[Foo]]` for example, will treat "Foo" as a legitimate note even if "Foo.md" does not exist on disk. This enables "tagging" a note with some folgezettel parent (eg. `#[[Review]]`) without being forced to create an empty Markdown file ("Review.md") on disk.
 - [[Pretty URLs]]
 - Pipeline plugins
-  - Calendar folgezettej
+  - Calendar folgezettel
+- Mimicking blog timeline
+  - Shape your tag link context such that it links to a daily zettel, as emanote sorts Downlinks by context (not title).
 - `IN-ROADMAP` Pandoc filters 
 - `IN-ROADMAP` Plugins (calendar, tasks, etc.)
