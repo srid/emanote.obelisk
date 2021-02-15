@@ -19,6 +19,7 @@ import qualified Frontend.Search as Search
 import qualified Frontend.Static as Static
 import qualified Frontend.Widget as W
 import GHCJS.DOM.Types (IsHTMLElement)
+import Obelisk.Configs (HasConfigs, getTextConfig)
 import Obelisk.Frontend
 import Obelisk.Route
 import Obelisk.Route.Frontend
@@ -40,7 +41,8 @@ frontend =
         elAttr "meta" ("content" =: "width=device-width, initial-scale=1" <> "name" =: "viewport") blank
         el "title" $ do
           dynText $ fromMaybe "..." <$> titDyn
-          text " | Emanote"
+          text " | "
+          elSiteTitle
         elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss SkylightingStyles.espresso
         Static.includeAssets,
       _frontend_body =
@@ -59,6 +61,11 @@ frontend =
       EmanoteState_AtRev rev -> Just rev
       _ -> Nothing
 
+elSiteTitle :: (DomBuilder t m, HasConfigs m) => m ()
+elSiteTitle = do
+  s <- fromMaybe "Untitled Emanote Site" <$> getTextConfig "common/siteTitle"
+  text s
+
 app ::
   forall t m js.
   ( DomBuilder t m,
@@ -72,7 +79,8 @@ app ::
     RouteToUrl (R FrontendRoute) m,
     SetRoute t (R FrontendRoute) m,
     IsHTMLElement (RawInputElement (DomBuilderSpace m)),
-    App.EmanoteRequester t m
+    App.EmanoteRequester t m,
+    HasConfigs m
   ) =>
   Event t Zk.Rev ->
   Event t Search.SearchAction ->
@@ -114,19 +122,21 @@ homeWidget ::
     RouteToUrl (R FrontendRoute) m,
     SetRoute t (R FrontendRoute) m,
     Prerender js t m,
-    MonadFix m
+    MonadFix m,
+    HasConfigs m
   ) =>
   Dynamic t Bool ->
-  Event t (Either Text (EmanoteState, [(Affinity, WikiLinkID)])) ->
+  Event t (Either Text (EmanoteState, (Pandoc, [(Affinity, WikiLinkID)]))) ->
   RoutedT t () m (Dynamic t (Maybe EmanoteState))
 homeWidget waiting resp =
   elMainPanel waiting $ do
-    elMainHeading $ text "Emanote"
-    elClass "p" "rounded border-2 mt-2 mb-2 p-2" $
-      text "Welcome to Emanote. Navigate from the notes below, or use the search feature above."
+    elMainHeading elSiteTitle
     withBackendResponse resp (constDyn Nothing) $ \result -> do
-      let notesDyn = snd <$> result
+      let notesDyn = snd . snd <$> result
+          blurbDyn = fst . snd <$> result
           stateDyn = fst <$> result
+      divClass "rounded border-2 mt-2 mb-2 p-2" $ do
+        dyn_ $ renderPandoc <$> blurbDyn
       el "ul" $ do
         void $
           simpleList notesDyn $ \xDyn -> do

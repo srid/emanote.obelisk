@@ -19,6 +19,7 @@ import Emanote.Zk.Type (Zettel)
 import qualified Emanote.Zk.Type as Zk
 import Reflex.Dom.Core
 import Relude
+import Text.Pandoc.Definition
 
 data Note = Note
   { _note_wikiLinkID :: EM.WikiLinkID,
@@ -62,7 +63,7 @@ data EmanoteState
 
 data EmanoteApi :: * -> * where
   EmanoteApi_GetRev :: EmanoteApi Zk.Rev
-  EmanoteApi_GetNotes :: EmanoteApi (EmanoteState, [(Affinity, EM.WikiLinkID)])
+  EmanoteApi_GetNotes :: EmanoteApi (EmanoteState, (Pandoc, [(Affinity, EM.WikiLinkID)]))
   EmanoteApi_Note :: EM.WikiLinkID -> EmanoteApi (EmanoteState, Note)
   EmanoteApi_Search :: Text -> EmanoteApi [EM.WikiLinkID]
 

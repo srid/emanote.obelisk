@@ -16,8 +16,10 @@ import Data.Tagged
 import qualified Data.Text as T
 import qualified Emanote
 import qualified Emanote.Graph as G
+import qualified Emanote.Markdown as M
 import Emanote.Markdown.WikiLink
 import qualified Emanote.Markdown.WikiLink as W
+import qualified Emanote.Markdown.WikiLink.Parser as M
 import qualified Emanote.Pipeline as Pipeline
 import Emanote.Zk (Zk (..))
 import qualified Emanote.Zk as Zk
@@ -30,6 +32,7 @@ import Obelisk.Route
 import Reflex.Dom.GadtApi.WebSocket (mkTaggedResponse)
 import Relude
 import Snap.Core
+import Text.Pandoc.Definition (Pandoc)
 
 backend :: Backend BackendRoute FrontendRoute
 backend =
@@ -40,6 +43,9 @@ backend =
               maybe (error $ "Missing " <> k) (T.strip . decodeUtf8) $ Map.lookup k configs
             notesDir = toString $ getCfg "backend/notesDir"
             readOnly = fromMaybe (error "Bad Bool value") $ readMaybe @Bool . toString $ getCfg "backend/readOnly"
+            siteBlurb =
+              either (error . show) id $
+                M.parseMarkdown (M.wikiLinkSpec <> M.markdownSpec) "backend/siteBlurb" $ getCfg "backend/siteBlurb.md"
         Emanote.emanoteMainWith (bool Pipeline.run Pipeline.runNoMonitor readOnly notesDir) $ \zk -> do
           serve $ \case
             BackendRoute_Missing :/ () -> do
@@ -52,7 +58,7 @@ backend =
                   modifyResponse $ setResponseStatus 400 "Bad Request"
                   writeText "Bad response!"
                 Just (Some emApi :: Some EmanoteApi) -> do
-                  resp <- handleEmanoteApi readOnly zk emApi
+                  resp <- handleEmanoteApi readOnly siteBlurb zk emApi
                   writeLBS $ has @Aeson.ToJSON emApi $ Aeson.encode resp
             BackendRoute_WebSocket :/ () -> do
               runWebSocketsSnap $ \pc -> do
@@ -64,7 +70,7 @@ backend =
                         WS.Binary v -> v
                   case m of
                     Right req -> do
-                      r <- mkTaggedResponse req $ handleEmanoteApi readOnly zk
+                      r <- mkTaggedResponse req $ handleEmanoteApi readOnly siteBlurb zk
                       case r of
                         Left err -> error $ toText err
                         Right rsp ->
@@ -75,8 +81,8 @@ backend =
       _backend_routeEncoder = fullRouteEncoder
     }
 
-handleEmanoteApi :: forall m a. MonadIO m => Bool -> Zk -> EmanoteApi a -> m a
-handleEmanoteApi readOnly zk@Zk {..} = \case
+handleEmanoteApi :: forall m a. MonadIO m => Bool -> Pandoc -> Zk -> EmanoteApi a -> m a
+handleEmanoteApi readOnly siteBlurb zk@Zk {..} = \case
   EmanoteApi_GetRev -> do
     Zk.getRev zk
   EmanoteApi_Search (Search.parseSearchQuery -> q) -> do
@@ -91,7 +97,7 @@ handleEmanoteApi readOnly zk@Zk {..} = \case
     liftIO $ putStrLn "API: GetNotes"
     estate <- getEmanoteState
     toplevel <- getOrphansAndRoots
-    pure (estate, sortOn Down toplevel)
+    pure (estate, (siteBlurb, sortOn Down toplevel))
   EmanoteApi_Note wikiLinkID -> do
     liftIO $ putStrLn $ "API: Note " <> show wikiLinkID
     estate <- getEmanoteState
