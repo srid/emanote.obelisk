@@ -128,8 +128,8 @@ homeWidget ::
   Dynamic t Bool ->
   Event t (Either Text (EmanoteState, (Pandoc, [(Affinity, WikiLinkID)]))) ->
   RoutedT t () m (Dynamic t (Maybe EmanoteState))
-homeWidget waiting resp =
-  elMainPanel waiting $ do
+homeWidget waiting resp = do
+  stateDyn <- elMainPanel waiting $ do
     elMainHeading elSiteTitle
     withBackendResponse resp (constDyn Nothing) $ \result -> do
       let notesDyn = snd . snd <$> result
@@ -145,6 +145,12 @@ homeWidget waiting resp =
               dyn_ $
                 affinityLabel . fst <$> xDyn
       pure $ Just <$> stateDyn
+  -- Add an empty sidepanel, to make the subsequent footer position itself at
+  -- the bottom. Kind of a hack, but it also makes the layout be consistent with
+  -- the notes route.
+  elSidePanel (constDyn False) blank
+  appFooter stateDyn
+  pure stateDyn
 
 noteWidget ::
   forall js t m.
@@ -162,7 +168,7 @@ noteWidget ::
 noteWidget waiting resp =
   withBackendResponse resp (constDyn Nothing) $ \result -> do
     let noteDyn = snd <$> result
-        stateDyn :: Dynamic t EmanoteState = fst <$> result
+        stateDyn = fst <$> result
         uplinks = _note_uplinks <$> noteDyn
         backlinks = _note_backlinks <$> noteDyn
         downlinks = _note_downlinks <$> noteDyn
@@ -222,17 +228,7 @@ noteWidget waiting resp =
           Just backlinksNE ->
             elSidePanelBox "Backlinks ⇠" $
               renderLinkContexts (toList <$> backlinksNE)
-    elFooter $ do
-      let url = "https://github.com/srid/emanote"
-      text "Powered by "
-      W.linkOpenInNewWindow mempty url $ text "Emanote"
-      dyn_ $
-        ffor stateDyn $ \case
-          EmanoteState_ReadOnly -> blank
-          EmanoteState_AtRev rev -> do
-            text " ("
-            el "tt" $ text $ show $ untag rev
-            text " changes since boot)"
+    appFooter $ Just <$> stateDyn
     pure $ Just <$> stateDyn
   where
     renderLinkContexts ls =
@@ -359,7 +355,8 @@ elSidePanel waiting =
 -- | Bottom footer
 elFooter :: (DomBuilder t m) => m a -> m a
 elFooter =
-  divClass "w-auto md:my-2 md:px-2 content-center text-gray-400 border-t-2"
+  -- The "md:float-right" is more of a hack.
+  divClass "w-auto md:float-right md:my-4 content-center text-gray-400 border-t-2"
 
 -- | A box in side column
 elSidePanelBox :: DomBuilder t m => Text -> m a -> m a
@@ -371,3 +368,17 @@ elSidePanelBox name w =
 divClassMayLoading :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> Text -> m a -> m a
 divClassMayLoading waiting cls =
   elDynClass "div" (ffor waiting $ bool cls (cls <> " animate-pulse"))
+
+appFooter :: (DomBuilder t m, PostBuild t m) => Dynamic t (Maybe EmanoteState) -> m ()
+appFooter stateDyn = do
+  elFooter $ do
+    let url = "https://github.com/srid/emanote"
+    text "Powered by "
+    W.linkOpenInNewWindow mempty url $ text "Emanote"
+    dyn_ $
+      ffor stateDyn $ \case
+        Just (EmanoteState_AtRev rev) -> do
+          text " ("
+          el "tt" $ text $ show $ untag rev
+          text " changes since boot)"
+        _ -> blank
