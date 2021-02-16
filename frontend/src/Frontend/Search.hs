@@ -69,7 +69,7 @@ searchWidget (traceEvent "actionE" -> actionE) = do
     qElem <-
       inputElement $
         def
-          & initialAttributes .~ ("placeholder" =: "Search ..." <> "class" =: inputClass)
+          & initialAttributes .~ ("placeholder" =: "Click here, or press / to search" <> "class" =: inputClass)
           & inputElementConfig_setValue .~ ("" <$ leave)
     prerender_ blank $
       widgetHold_ blank $
