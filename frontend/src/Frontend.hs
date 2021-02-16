@@ -357,7 +357,7 @@ elMainPanel waiting =
 elMainHeading :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
 elMainHeading waiting w = do
   let h1Cls = "text-3xl text-green-700 font-bold mt-2 mb-4"
-      boxCls = "h-5 w-5 mr-3 rouded bg-green-400"
+      boxCls = "h-5 w-5 mr-3 mt-3 ml-3 rouded bg-green-500"
   elClass "h1" h1Cls $ do
     w
       <* elDynClass "div" (ffor waiting $ bool (boxCls <> " hidden") (boxCls <> " animate-ping")) blank
