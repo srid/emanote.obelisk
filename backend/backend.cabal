@@ -32,6 +32,7 @@ library
     , websockets-snap
     , algebraic-graphs-patch
     , tagged
+    , timeit
 
   exposed-modules:    Backend
   default-extensions:

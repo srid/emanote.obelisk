@@ -32,6 +32,7 @@ import Obelisk.Route
 import Reflex.Dom.GadtApi.WebSocket (mkTaggedResponse)
 import Relude
 import Snap.Core
+import System.TimeIt (timeItNamed)
 import Text.Pandoc.Definition (Pandoc)
 
 backend :: Backend BackendRoute FrontendRoute
@@ -86,54 +87,54 @@ handleEmanoteApi readOnly siteBlurb zk@Zk {..} = \case
   EmanoteApi_GetRev -> do
     Zk.getRev zk
   EmanoteApi_Search (Search.parseSearchQuery -> q) -> do
-    liftIO $ putTextLn $ "API: Search " <> show q
-    graph <- Zk.getGraph zk
-    zs <- Zk.getZettels zk
-    let getVertices = GP.patchedGraphVertexSet (`Map.member` zs) . G.unGraph
-        wIds = getVertices graph
-        results = search q (toList wIds)
-    pure $ take 10 results
+    timeItNamed ("API: Search " <> show q) $ do
+      graph <- Zk.getGraph zk
+      zs <- Zk.getZettels zk
+      let getVertices = GP.patchedGraphVertexSet (`Map.member` zs) . G.unGraph
+          wIds = getVertices graph
+          results = search q (toList wIds)
+      pure $ take 10 results
   EmanoteApi_GetNotes -> do
-    liftIO $ putStrLn "API: GetNotes"
-    estate <- getEmanoteState
-    toplevel <- getOrphansAndRoots
-    pure (estate, (siteBlurb, sortOn Down toplevel))
+    timeItNamed "API: GetNotes" $ do
+      estate <- getEmanoteState
+      toplevel <- getOrphansAndRoots
+      pure (estate, (siteBlurb, sortOn Down toplevel))
   EmanoteApi_Note wikiLinkID -> do
-    liftIO $ putStrLn $ "API: Note " <> show wikiLinkID
-    estate <- getEmanoteState
-    zs <- Zk.getZettels zk
-    graph <- Zk.getGraph zk
-    let mz = Map.lookup wikiLinkID zs
-        mkLinkCtxList :: forall k. Ord k => (Directed WikiLinkLabel -> Bool) -> (LinkContext -> Down k) -> [LinkContext]
-        mkLinkCtxList f sortField = do
-          let conns =
-                Map.toList $
-                  Map.fromListWith (<>) $
-                    second one . swap
-                      <$> G.connectionsOf f wikiLinkID graph
-              ls =
-                conns <&> \(_linkcontext_id, wls :: NonEmpty WikiLink) ->
-                  let _linkcontext_effectiveLabel = sconcat $ _wikilink_label <$> wls
-                      _linkcontext_ctxList = mapMaybe _wikilink_ctx $ toList wls
-                   in LinkContext {..}
-          sortOn sortField ls
-        note =
-          Note
-            wikiLinkID
-            mz
-            -- Sort backlinks by ID, so as to effectively push daily notes to
-            -- the bottom.
-            (mkLinkCtxList W.isBacklink $ Down . _linkcontext_id)
-            -- Downlinks are sorted by context, so as to allow the user to
-            -- control their sort order.
-            --
-            -- This useful for Blog downlinks, which typically link to date in
-            -- their context, thus effecting allowing a listing that is sorted
-            -- by date (mimicking blog timeline)
-            (mkLinkCtxList W.isTaggedBy $ Down . _linkcontext_ctxList)
-            -- See note above re: backlinks.
-            (mkLinkCtxList W.isUplink $ Down . _linkcontext_id)
-    pure (estate, note)
+    timeItNamed ("API: Note " <> show wikiLinkID) $ do
+      estate <- getEmanoteState
+      zs <- Zk.getZettels zk
+      graph <- Zk.getGraph zk
+      let mz = Map.lookup wikiLinkID zs
+          mkLinkCtxList :: forall k. Ord k => (Directed WikiLinkLabel -> Bool) -> (LinkContext -> Down k) -> [LinkContext]
+          mkLinkCtxList f sortField = do
+            let conns =
+                  Map.toList $
+                    Map.fromListWith (<>) $
+                      second one . swap
+                        <$> G.connectionsOf f wikiLinkID graph
+                ls =
+                  conns <&> \(_linkcontext_id, wls :: NonEmpty WikiLink) ->
+                    let _linkcontext_effectiveLabel = sconcat $ _wikilink_label <$> wls
+                        _linkcontext_ctxList = mapMaybe _wikilink_ctx $ toList wls
+                     in LinkContext {..}
+            sortOn sortField ls
+          note =
+            Note
+              wikiLinkID
+              mz
+              -- Sort backlinks by ID, so as to effectively push daily notes to
+              -- the bottom.
+              (mkLinkCtxList W.isBacklink $ Down . _linkcontext_id)
+              -- Downlinks are sorted by context, so as to allow the user to
+              -- control their sort order.
+              --
+              -- This useful for Blog downlinks, which typically link to date in
+              -- their context, thus effecting allowing a listing that is sorted
+              -- by date (mimicking blog timeline)
+              (mkLinkCtxList W.isTaggedBy $ Down . _linkcontext_ctxList)
+              -- See note above re: backlinks.
+              (mkLinkCtxList W.isUplink $ Down . _linkcontext_id)
+      pure (estate, note)
   where
     getEmanoteState :: m EmanoteState
     getEmanoteState = do
