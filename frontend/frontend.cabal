@@ -12,24 +12,24 @@ library
     , constraints-extras
     , containers
     , emanote-core
+    , ghcjs-dom
     , jsaddle
+    , jsaddle-dom
+    , keycode
+    , lens
     , obelisk-executable-config-lookup
     , obelisk-frontend
     , obelisk-generated-static
     , obelisk-route
+    , pandoc-types
     , reflex-dom
     , reflex-dom-pandoc
     , reflex-gadt-api
     , relude
+    , skylighting-core
     , tagged
     , text
     , time
-    , pandoc-types
-    , skylighting-core
-    , ghcjs-dom
-    , jsaddle-dom
-    , keycode
-    , lens
 
   exposed-modules:
     Frontend

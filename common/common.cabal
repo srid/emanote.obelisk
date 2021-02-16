@@ -13,16 +13,16 @@ library
     , dependent-sum-template
     , emanote-core
     , lens
+    , megaparsec
     , mtl
     , obelisk-route
     , pandoc-types
+    , parser-combinators
     , reflex-dom-core
     , reflex-gadt-api
     , relude
     , tagged
     , text
-    , megaparsec
-    , parser-combinators
 
   exposed-modules:
     Common.Api
