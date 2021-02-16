@@ -34,28 +34,32 @@ import Text.Pandoc.Definition (Block (Plain), Pandoc (..))
 -- This runs in a monad that can be run on the client or the server.
 -- To run code in a pure client or pure server context, use one of the
 -- `prerender` functions.
-frontend :: Frontend (R FrontendRoute) (Maybe Text)
+frontend :: Frontend (R FrontendRoute) Text
 frontend =
   Frontend
     { _frontend_head = \titDyn -> do
         elAttr "meta" ("content" =: "text/html; charset=utf-8" <> "http-equiv" =: "Content-Type") blank
         elAttr "meta" ("content" =: "width=device-width, initial-scale=1" <> "name" =: "viewport") blank
         el "title" $ do
-          dynText $ fromMaybe "..." <$> titDyn
+          dynText titDyn
           text " | "
           elSiteTitle
         elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss SkylightingStyles.tango
         Static.includeAssets,
       _frontend_body =
         divClass "min-h-screen md:container mx-auto px-4" $ do
-          fmap join $
-            prerender (pure $ constDyn Nothing) $ do
-              keyE <- W.captureKey Search.keyMap
-              App.runApp $ do
-                rec xDyn <- app update keyE
-                    let rev = fmapMaybe (nonReadOnlyRev =<<) $ updated $ fst <$> xDyn
-                    update <- App.pollRevUpdates EmanoteApi_GetRev rightToMaybe rev
-                pure $ snd <$> xDyn
+          prerender_ blank $ do
+            keyE <- W.captureKey Search.keyMap
+            App.runApp $ do
+              rec xDyn <- app update keyE
+                  let rev = fmapMaybe (nonReadOnlyRev =<<) $ updated xDyn
+                  update <- App.pollRevUpdates EmanoteApi_GetRev rightToMaybe rev
+              pure ()
+          r <- askRoute
+          pure $
+            ffor r $ \case
+              FrontendRoute_Main :/ () -> "Home"
+              FrontendRoute_Note :/ wId -> untag wId
     }
   where
     nonReadOnlyRev = \case
@@ -85,7 +89,7 @@ app ::
   ) =>
   Event t Zk.Rev ->
   Event t Search.SearchAction ->
-  RoutedT t (R FrontendRoute) m (Dynamic t (Maybe EmanoteState, Maybe Text))
+  RoutedT t (R FrontendRoute) m (Dynamic t (Maybe EmanoteState))
 app updateAvailable searchTrigger =
   divClass "flex flex-wrap justify-center flex-row-reverse md:-mx-2 overflow-hidden" $ do
     Search.searchWidget searchTrigger
@@ -100,8 +104,7 @@ app updateAvailable searchTrigger =
                 [ fmap (const True) (updated req),
                   fmap (const False) resp
                 ]
-          currentRev <- homeWidget waiting resp
-          pure $ (,Just "Home") <$> currentRev
+          homeWidget waiting resp
         FrontendRoute_Note -> do
           req <- fmap EmanoteApi_Note <$> askRoute
           resp <- App.requestingDynamicWithRefreshEvent req (() <$ updateAvailable)
@@ -111,9 +114,7 @@ app updateAvailable searchTrigger =
                 [ fmap (const True) (updated req),
                   fmap (const False) resp
                 ]
-          currentRev <- noteWidget waiting resp
-          titleDyn <- fmap (Just . untag) <$> askRoute
-          pure $ (,) <$> currentRev <*> titleDyn
+          noteWidget waiting resp
 
 homeWidget ::
   forall js t m.
