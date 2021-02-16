@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Frontend where
 
@@ -131,7 +132,7 @@ homeWidget ::
 homeWidget waiting resp = do
   withBackendResponse resp (constDyn Nothing) $ \result -> do
     stateDyn <- elMainPanel waiting $ do
-      elMainHeading elSiteTitle
+      elMainHeading waiting elSiteTitle
       let notesDyn = snd . snd <$> result
           blurbDyn = fst . snd <$> result
           stateDyn = fst <$> result
@@ -173,7 +174,7 @@ noteWidget waiting resp =
         backlinks = _note_backlinks <$> noteDyn
         downlinks = _note_downlinks <$> noteDyn
     elMainPanel waiting $ do
-      elMainHeading $ do
+      elMainHeading waiting $ do
         r <- askRoute
         dynText $ untag <$> r
       mzettel <- maybeDyn $ _note_zettel <$> noteDyn
@@ -353,9 +354,13 @@ elMainPanel waiting =
   divClassMayLoading waiting "w-full overflow-hidden md:px-2 md:w-4/6"
 
 -- | Heading in main column
-elMainHeading :: DomBuilder t m => m a -> m a
-elMainHeading =
-  elClass "h1" "text-3xl text-green-700 font-bold mt-2 mb-4"
+elMainHeading :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
+elMainHeading waiting w = do
+  let h1Cls = "text-3xl text-green-700 font-bold mt-2 mb-4"
+      boxCls = "h-5 w-5 mr-3 rouded bg-green-400"
+  elClass "h1" h1Cls $ do
+    w
+      <* elDynClass "div" (ffor waiting $ bool (boxCls <> " hidden") (boxCls <> " animate-ping")) blank
 
 -- | Side column
 elSidePanel :: (DomBuilder t m, PostBuild t m) => Dynamic t Bool -> m a -> m a
