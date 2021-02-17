@@ -9,9 +9,10 @@
 
 module Frontend.App
   ( runApp,
+    mkBackendRequest,
+    withBackendResponse,
     EmanoteRequester,
     requestingDynamic,
-    requestingDynamicWithRefreshEvent,
     pollRevUpdates,
   )
 where
@@ -28,6 +29,9 @@ import Obelisk.Route.Frontend
 import Reflex.Dom.Core
 import Reflex.Dom.GadtApi
 import Relude
+
+-- Application top-level runner
+-- ----------------------------
 
 type ValidEnc = Encoder Identity Identity (R (FullRoute BackendRoute FrontendRoute)) PageName
 
@@ -83,6 +87,79 @@ runApp w = do
             Left xhr -> performXhrRequests xhr (requests :: Event t (RequesterData EmanoteApi))
             Right ws -> performWebSocketRequests ws (requests :: Event t (RequesterData EmanoteApi))
       pure x
+
+-- Widget-level request/response handling
+-- These provide a higher abstraction over the type/functions below
+-- -----------------------------------------
+
+-- Make a request to the backend.
+mkBackendRequest ::
+  forall r a t m js.
+  ( Prerender js t m,
+    MonadHold t m,
+    EmanoteRequester t m
+  ) =>
+  -- | Refresh the request on firing this event.
+  Event t () ->
+  -- | What request to make.
+  Dynamic t (Request m a) ->
+  -- Return the response, along with an indicator of "still making request" state.
+  RoutedT t r m (Dynamic t Bool, Event t (Response m a))
+mkBackendRequest requestAgain req = do
+  resp <- requestingDynamicWithRefreshEvent req requestAgain
+  waiting <-
+    holdDyn True $
+      leftmost
+        [ fmap (const True) (updated req),
+          fmap (const False) resp
+        ]
+  pure (waiting, resp)
+
+
+-- Handle a response event from backend, and invoke the given widget for the
+-- actual result.
+--
+-- This function does loading state and error handling.
+withBackendResponse ::
+  ( DomBuilder t m,
+    PostBuild t m,
+    MonadHold t m,
+    MonadFix m
+  ) =>
+  -- | Response event from backend
+  Event t (Either Text result) ->
+  -- | The value to return when the result is not yet available or successful.
+  Dynamic t v ->
+  -- | Widget to render when the successful result becomes available
+  (Dynamic t result -> m (Dynamic t v)) ->
+  m (Dynamic t v)
+withBackendResponse resp v0 f = do
+  mresp <- maybeDyn =<< holdDyn Nothing (Just <$> resp)
+  fmap join . holdDyn v0 <=< dyn $
+    ffor mresp $ \case
+      Nothing -> do
+        loader
+        pure v0
+      Just resp' -> do
+        eresp <- eitherDyn resp'
+        fmap join . holdDyn v0 <=< dyn $
+          ffor eresp $ \case
+            Left errDyn -> do
+              dynText $ show <$> errDyn
+              pure v0
+            Right result ->
+              f result
+  where
+    loader :: DomBuilder t m => m ()
+    loader =
+      divClass "grid grid-cols-3 ml-0 pl-0 content-evenly" $ do
+        divClass "col-start-1 col-span-3 h-16" blank
+        divClass "col-start-2 col-span-1 place-self-center p-4 h-full bg-black text-white rounded" $
+          text "Loading..."
+
+-- Requester type and functions
+-- Uses reflex-gadt-api underneath
+-- -------------------------------
 
 type EmanoteRequester t m =
   ( Response m ~ Either Text,

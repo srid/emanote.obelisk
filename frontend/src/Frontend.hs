@@ -14,7 +14,6 @@ import Control.Monad.Fix (MonadFix)
 import qualified Data.Map.Strict as Map
 import Data.Tagged
 import Emanote.Markdown.WikiLink
-import qualified Emanote.Zk.Type as Zk
 import qualified Frontend.App as App
 import qualified Frontend.Search as Search
 import qualified Frontend.Static as Static
@@ -51,7 +50,7 @@ frontend =
           prerender_ blank $ do
             keyE <- W.captureKey Search.keyMap
             App.runApp $ do
-              rec xDyn <- app update keyE
+              rec xDyn <- app (() <$ update) keyE
                   let rev = fmapMaybe (nonReadOnlyRev =<<) $ updated xDyn
                   update <- App.pollRevUpdates EmanoteApi_GetRev rightToMaybe rev
               pure ()
@@ -87,7 +86,7 @@ app ::
     App.EmanoteRequester t m,
     HasConfigs m
   ) =>
-  Event t Zk.Rev ->
+  Event t () ->
   Event t Search.SearchAction ->
   RoutedT t (R FrontendRoute) m (Dynamic t (Maybe EmanoteState))
 app updateAvailable searchTrigger =
@@ -97,24 +96,10 @@ app updateAvailable searchTrigger =
       subRoute $ \case
         FrontendRoute_Main -> do
           req <- fmap (const EmanoteApi_GetNotes) <$> askRoute
-          resp <- App.requestingDynamicWithRefreshEvent req (() <$ updateAvailable)
-          waiting <-
-            holdDyn True $
-              leftmost
-                [ fmap (const True) (updated req),
-                  fmap (const False) resp
-                ]
-          homeWidget waiting resp
+          uncurry homeWidget =<< App.mkBackendRequest updateAvailable req
         FrontendRoute_Note -> do
           req <- fmap EmanoteApi_Note <$> askRoute
-          resp <- App.requestingDynamicWithRefreshEvent req (() <$ updateAvailable)
-          waiting <-
-            holdDyn True $
-              leftmost
-                [ fmap (const True) (updated req),
-                  fmap (const False) resp
-                ]
-          noteWidget waiting resp
+          uncurry noteWidget =<< App.mkBackendRequest updateAvailable req
 
 homeWidget ::
   forall js t m.
@@ -131,7 +116,7 @@ homeWidget ::
   Event t (Either Text (EmanoteState, (Pandoc, [(Affinity, WikiLinkID)]))) ->
   RoutedT t () m (Dynamic t (Maybe EmanoteState))
 homeWidget waiting resp = do
-  withBackendResponse resp (constDyn Nothing) $ \result -> do
+  App.withBackendResponse resp (constDyn Nothing) $ \result -> do
     stateDyn <- elMainPanel waiting $ do
       elMainHeading waiting elSiteTitle
       let notesDyn = snd . snd <$> result
@@ -168,7 +153,7 @@ noteWidget ::
   Event t (Either Text (EmanoteState, Note)) ->
   RoutedT t WikiLinkID m (Dynamic t (Maybe EmanoteState))
 noteWidget waiting resp =
-  withBackendResponse resp (constDyn Nothing) $ \result -> do
+  App.withBackendResponse resp (constDyn Nothing) $ \result -> do
     let noteDyn = snd <$> result
         stateDyn = fst <$> result
         uplinks = _note_uplinks <$> noteDyn
@@ -305,47 +290,6 @@ affinityLabel = \case
     elClass "span" "border-2 text-gray ml-2 p-0.5 text-sm rounded" $
       elAttr "span" ("title" =: (show n <> " parents")) $
         text $ show n
-
--- Handle a response event from backend, and invoke the given widget for the
--- actual result.
---
--- This function does loading state and error handling.
-withBackendResponse ::
-  ( DomBuilder t m,
-    PostBuild t m,
-    MonadHold t m,
-    MonadFix m
-  ) =>
-  -- | Response event from backend
-  Event t (Either Text result) ->
-  -- | The value to return when the result is not yet available or successful.
-  Dynamic t v ->
-  -- | Widget to render when the successful result becomes available
-  (Dynamic t result -> m (Dynamic t v)) ->
-  m (Dynamic t v)
-withBackendResponse resp v0 f = do
-  mresp <- maybeDyn =<< holdDyn Nothing (Just <$> resp)
-  fmap join . holdDyn v0 <=< dyn $
-    ffor mresp $ \case
-      Nothing -> do
-        loader
-        pure v0
-      Just resp' -> do
-        eresp <- eitherDyn resp'
-        fmap join . holdDyn v0 <=< dyn $
-          ffor eresp $ \case
-            Left errDyn -> do
-              dynText $ show <$> errDyn
-              pure v0
-            Right result ->
-              f result
-  where
-    loader :: DomBuilder t m => m ()
-    loader =
-      divClass "grid grid-cols-3 ml-0 pl-0 content-evenly" $ do
-        divClass "col-start-1 col-span-3 h-16" blank
-        divClass "col-start-2 col-span-1 place-self-center p-4 h-full bg-black text-white rounded" $
-          text "Loading..."
 
 -- Layout
 
