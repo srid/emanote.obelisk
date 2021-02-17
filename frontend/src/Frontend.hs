@@ -33,14 +33,18 @@ import Text.Pandoc.Definition (Block (Plain), Pandoc (..))
 -- This runs in a monad that can be run on the client or the server.
 -- To run code in a pure client or pure server context, use one of the
 -- `prerender` functions.
-frontend :: Frontend (R FrontendRoute) Text
+frontend :: Frontend (R FrontendRoute)
 frontend =
   Frontend
-    { _frontend_head = \titDyn -> do
+    { _frontend_head = do
         elAttr "meta" ("content" =: "text/html; charset=utf-8" <> "http-equiv" =: "Content-Type") blank
         elAttr "meta" ("content" =: "width=device-width, initial-scale=1" <> "name" =: "viewport") blank
         el "title" $ do
-          dynText titDyn
+          subRoute_ $ \case 
+            FrontendRoute_Main -> text "Home"
+            FrontendRoute_Note -> do 
+              wId <- askRoute 
+              dynText $ untag <$> wId
           text " | "
           elSiteTitle
         elAttr "style" ("type" =: "text/css") $ text $ toText $ styleToCss SkylightingStyles.tango
@@ -54,11 +58,6 @@ frontend =
                   let rev = fmapMaybe (nonReadOnlyRev =<<) $ updated xDyn
                   update <- App.pollRevUpdates EmanoteApi_GetRev rightToMaybe rev
               pure ()
-          r <- askRoute
-          pure $
-            ffor r $ \case
-              FrontendRoute_Main :/ () -> "Home"
-              FrontendRoute_Note :/ wId -> untag wId
     }
   where
     nonReadOnlyRev = \case
