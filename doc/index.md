@@ -14,3 +14,4 @@ Interested in trying out, or hacking?
 
 - Philosophy: [[Keep It Simple, Stupid]]
 - [[Features]]
+- [[Architecture]]
