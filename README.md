@@ -16,9 +16,9 @@ Maybe-goals: use `emanote-core` as a core library in neuron.
 
 Clone the source, and read `./doc/Development.md`
 
-## When will it be released?
+## Demo
 
-I plan to move srid.ca to use emanote by end of Feb. My private Zettelkasten already is using emanote.
+My public wiki is running on Emanote: https://w.srid.ca/
 
 ## Talk about it
 
