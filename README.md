@@ -18,7 +18,7 @@ Clone the source, and read `./doc/Development.md`
 
 ## Demo
 
-My public wiki is running on Emanote: https://w.srid.ca/
+Want to participate in a demo? [See here](https://github.com/srid/emanote/issues/6#issuecomment-786763388)
 
 ## Talk about it
 
