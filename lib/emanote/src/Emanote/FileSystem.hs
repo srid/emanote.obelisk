@@ -85,7 +85,7 @@ directoryTreeIncremental ignores p = do
       -- user?
       -- TODO(!!) Dir updates (added/deleted) don't include their contents!!
       -- In that case, do a mapIncrementalWithOldValue to automatically remove
-      -- the file contents.
+      -- the file contents? See also TODO's below.
       liftIO $ readFilesAsPatchMap evts
   holdIncremental fs0 fsPatches
   where
@@ -94,10 +94,12 @@ directoryTreeIncremental ignores p = do
       fmap (PatchMap . Map.fromList . catMaybes) . traverse go
       where
         go = \case
+          -- TODO: If this is a dir, automatically add files inside the dir.
           FSN.Added fp _time isDir ->
             Just . (fp,) . Just <$> mkPathContent isDir (p </> fp)
           FSN.Modified fp _time isDir ->
             Just . (fp,) . Just <$> mkPathContent isDir (p </> fp)
+          -- TODO: If this is a dir, automatically remove files added before.
           FSN.Removed fp _time _isDir ->
             pure $ Just (fp, Nothing)
           _ -> do
