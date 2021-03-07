@@ -10,6 +10,7 @@ type V = WikiLinkID
 
 type E' = WikiLink
 
+-- TODO: Document why Set?
 type E = Set E'
 
 newtype Graph = Graph {unGraph :: AM.AdjacencyMap E V}
@@ -18,6 +19,7 @@ newtype Graph = Graph {unGraph :: AM.AdjacencyMap E V}
 empty :: Graph
 empty = Graph AM.empty
 
+-- TODO: Rename to `neighbours` and make generic (on AdjacencyMap)
 connectionsOf :: (Directed WikiLinkLabel -> Bool) -> V -> Graph -> [(E', V)]
 connectionsOf f x graph =
   go UserDefinedDirection postSetWithLabel

@@ -68,7 +68,7 @@
     @apply mb-3;
   }
   .pandoc h2 {
-    @apply  text-3xl underline;
+    @apply  text-3xl border-t-2  border-gray-200 bg-gray-100 text-center;
     text-decoration-color: rgba(10,10,10,0.1);
   }
   .pandoc h3 {
@@ -83,8 +83,18 @@
   .pandoc h6 {
     @apply  text-base;
   }
+  .pandoc dl {
+    @apply mb-3;
+  }
+  .pandoc dl dt {
+    @apply font-bold italic;
+  }
+  .pandoc dl dd {
+    @apply pl-2;
+  }
   .pandoc blockquote {
     @apply border-l-4 border-gray-500 ml-2 p-2 bg-gray-100;
+    @apply mb-3;
   }
   .pandoc .pandoc-code {
     @apply bg-gray-100 my-2 p-2 rounded shadow overflow-y-auto;

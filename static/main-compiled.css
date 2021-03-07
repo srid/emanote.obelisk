@@ -660,9 +660,14 @@ div.notePandoc > .pandoc p {
 }
 
 .pandoc h2 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(243, 244, 246, var(--tw-bg-opacity));
+  --tw-border-opacity: 1;
+  border-color: rgba(229, 231, 235, var(--tw-border-opacity));
+  border-top-width: 2px;
   font-size: 1.875rem;
   line-height: 2.25rem;
-  text-decoration: underline;
+  text-align: center;
   -webkit-text-decoration-color: rgba(10,10,10,0.1);
           text-decoration-color: rgba(10,10,10,0.1);
 }
@@ -687,6 +692,19 @@ div.notePandoc > .pandoc p {
   line-height: 1.5rem;
 }
 
+.pandoc dl {
+  margin-bottom: 0.75rem;
+}
+
+.pandoc dl dt {
+  font-weight: 700;
+  font-style: italic;
+}
+
+.pandoc dl dd {
+  padding-left: 0.5rem;
+}
+
 .pandoc blockquote {
   --tw-bg-opacity: 1;
   background-color: rgba(243, 244, 246, var(--tw-bg-opacity));
@@ -695,6 +713,7 @@ div.notePandoc > .pandoc p {
   border-left-width: 4px;
   margin-left: 0.5rem;
   padding: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .pandoc .pandoc-code {
