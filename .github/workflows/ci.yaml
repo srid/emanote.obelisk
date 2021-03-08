@@ -1,7 +1,7 @@
 name: "CI"
 # Disabling, because build is pretty slow
 on:
-  #pull_request:
+  pull_request:
   #push:
 jobs:
   build:
