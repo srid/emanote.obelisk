@@ -8,12 +8,15 @@ Interested in trying out, or hacking?
 
 - Start from [[Development]]#
 - Familiarize yourself with,
-  - Haskell (of course)
-  - [Reflex](https://reflex-frp.org/)'s `Incremental` type, as well as the Obelisk framework.
+  - Haskell (of course) 
   - Haskell's [STM](http://book.realworldhaskell.org/read/software-transactional-memory.html) (incremental patching of in-memory database).
+  - Frontend programming in Haskell: [Reflex]'s `Incremental` type, as well as [Obelisk].
 
 ## [WIP] User Guide
 
 - Philosophy: [[Keep It Simple, Stupid]]
 - [[Features]]
 - [[Architecture]]
+
+[Reflex]: https://www.srid.ca/reflex-frp
+[Obelisk]: https://www.srid.ca/obelisk
