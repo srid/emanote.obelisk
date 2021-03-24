@@ -11,12 +11,12 @@ Interested in trying out, or hacking?
   - Haskell (of course) 
   - Haskell's [STM](http://book.realworldhaskell.org/read/software-transactional-memory.html) (incremental patching of in-memory database).
   - Frontend programming in Haskell: [Reflex]'s `Incremental` type, as well as [Obelisk].
+  - [[Architecture]]#
 
 ## [WIP] User Guide
 
-- Philosophy: [[Keep It Simple, Stupid]]
-- [[Features]]
-- [[Architecture]]
+- Philosophy: [[Keep It Simple, Stupid]]#
+- [[Features]]#
 
 [Reflex]: https://www.srid.ca/reflex-frp
 [Obelisk]: https://www.srid.ca/obelisk
