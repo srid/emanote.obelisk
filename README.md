@@ -18,9 +18,32 @@ Maybe-goals: use `emanote-core` as a core library in neuron.
 
 Clone the source, and read `./doc/Development.md`
 
-## Demo
+## Self-host it in production
 
-Want to participate in a demo? [See here](https://github.com/srid/emanote/issues/6#issuecomment-786763388)
+If you are NixOS, [obelisk-systemd](https://github.com/obsidiansystems/obelisk-systemd) can be used to automate self-hosting. Otherwise, on other Linux, follow the instructions below.
+
+1. Install Nix
+1. Set up nix cache by following [instructions here](https://github.com/obsidiansystems/obelisk#installing-obelisk)
+2. Build it (might take a while):
+    ```
+    nix-build -A exe -j auto -o ./result
+    ```
+3. Prepare runtime files:
+    ```
+    mkdir ~/my-emanote
+    cp -r ./result/* ~/my-emanote
+    cp -r config ~/my-emanote/
+    ```
+4. Tell emanote where your Zettelkasten (directory of Markdown files) lives:
+    ```
+    vim ~/emanote/config/backend/notesDir  
+    ```
+5. Run it! (on http://localhost:8000)
+    ```
+    cd ~/my-emanote
+    ./backend -p 8000  #
+    ```
+6. NOTE: When self-hosting and exposing under a different address, say www.example.com, you must edit `~/my-emanote/config/common/route` to contain the corresponding URL, i.e., `https://www.example.com`.
 
 ## Talk about it
 
