@@ -20,7 +20,7 @@ Clone the source, and read `./doc/Development.md`
 
 ## Self-host it in production
 
-If you are NixOS, [obelisk-systemd](https://github.com/obsidiansystems/obelisk-systemd) can be used to automate self-hosting. Otherwise, on other Linux, follow the instructions below.
+If you use NixOS, [obelisk-systemd](https://github.com/obsidiansystems/obelisk-systemd) can be used to automate self-hosting. Otherwise, on other Linux, follow the instructions below.
 
 1. Install Nix
 1. Set up nix cache by following [instructions here](https://github.com/obsidiansystems/obelisk#installing-obelisk)
@@ -44,6 +44,10 @@ If you are NixOS, [obelisk-systemd](https://github.com/obsidiansystems/obelisk-s
     ./backend -p 8000  #
     ```
 6. NOTE: When self-hosting and exposing under a different address, say www.example.com, you must edit `~/my-emanote/config/common/route` to contain the corresponding URL, i.e., `https://www.example.com`.
+
+## Editing notes
+
+Emanote does not provide a editor. However, if you use [Syncthing](https://syncthing.net/) - and edit your notes locally, Emanote's view will update automatically without refresh. This mimicks the "live preview" feature (have your text editor open on side, and the web browser with emanote on another side).
 
 ## Talk about it
 
